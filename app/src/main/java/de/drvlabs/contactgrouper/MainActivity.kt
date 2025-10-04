@@ -13,18 +13,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,19 +29,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
 import de.drvlabs.contactgrouper.views.ContactList
 import de.drvlabs.contactgrouper.views.GroupEditor
 
-sealed class Screen(val route: String, val selected: ImageVector, val unselected: ImageVector) {
-    object Contacts : Screen("Contacts", Icons.Filled.Person, Icons.Outlined.Person)
-    object Groups : Screen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups)
-}
+
 
 class MainActivity : ComponentActivity() {
     private val viewModel: ContactsViewModel by viewModels {
@@ -84,33 +77,36 @@ class MainActivity : ComponentActivity() {
                 )
 
                 var selectedScreen by remember { mutableStateOf<Screen>(Screen.Contacts) }
-
+                val navController = rememberNavController()
 //
 //              APP BASE
 //
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
-                        BottomNavigation(selectedScreen = selectedScreen) { screen ->
-                            selectedScreen = screen
-                        }
+                        BottomNavigation(navController = navController)
                     }
                 ) { innerPadding ->
                     if (hasPermission) {
-                        when (selectedScreen) {
-                            Screen.Contacts -> {
+                        NavHost(
+                            navController = navController,
+                            startDestination = Screen.Contacts.route, // Start-Screen
+                            modifier = Modifier.padding(innerPadding),
+                            enterTransition = {EnterTransition.None},
+                            exitTransition = {ExitTransition.None}
+                        ) {
+                            composable(Screen.Contacts.route) {
                                 val contacts = viewModel.contacts.collectAsState()
-                                ContactList(
-                                    contacts = contacts.value,
-                                    modifier = Modifier.padding(innerPadding)
-                                )
+                                ContactList(contacts = contacts.value)
                             }
-                            Screen.Groups -> {
-                                GroupEditor(modifier = Modifier.padding(innerPadding))
+                            composable(Screen.Groups.route) {
+                                GroupEditor()
                             }
                         }
                     } else {
-                        Box(modifier = Modifier.fillMaxSize().padding(innerPadding))
+                        Box(modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding))
                     }
                 }
 
@@ -169,20 +165,3 @@ fun Context.openAppSettings() {
     startActivity(intent)
 }
 
-@Composable
-fun BottomNavigation(selectedScreen: Screen, onScreenSelected: (Screen) -> Unit) {
-    val items = listOf(Screen.Contacts, Screen.Groups)
-    NavigationBar {
-        items.forEach { screen ->
-            val isSelected = selectedScreen == screen
-            NavigationBarItem(
-                icon = {
-                    Icon(if (isSelected) screen.selected else screen.unselected, contentDescription = screen.route)
-                },
-                label = { Text(screen.route) },
-                selected = isSelected,
-                onClick = { onScreenSelected(screen) }
-            )
-        }
-    }
-}
