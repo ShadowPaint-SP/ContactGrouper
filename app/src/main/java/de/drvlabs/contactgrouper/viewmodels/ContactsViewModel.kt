@@ -1,4 +1,4 @@
-package de.drvlabs.contactgrouper
+package de.drvlabs.contactgrouper.viewmodels
 
 import android.content.ContentResolver
 import android.database.ContentObserver
@@ -11,7 +11,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-data class Contact(val name: String)
+data class Contact(
+    val id: Int,
+    val name:String,
+    val groupId: String? = null // null means it's not in any group
+)
 
 class ContactsViewModel(private val contentResolver: ContentResolver) : ViewModel() {
 
@@ -42,7 +46,10 @@ class ContactsViewModel(private val contentResolver: ContentResolver) : ViewMode
     private fun loadContacts() {
         viewModelScope.launch {
             val contactsList = mutableListOf<Contact>()
-            val projection = arrayOf(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
+            val projection = arrayOf(
+                ContactsContract.Data.CONTACT_ID, // Use this more reliable constant
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY
+            )
             val cursor = contentResolver.query(
                 ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                 projection,
@@ -52,12 +59,15 @@ class ContactsViewModel(private val contentResolver: ContentResolver) : ViewMode
             )
 
             cursor?.use {
+
+                val idIndex = it.getColumnIndex(ContactsContract.Data.CONTACT_ID)
                 val nameIndex =
                     it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
                 if (nameIndex != -1) {
                     while (it.moveToNext()) {
+                        val id = it.getString(idIndex).toInt()
                         val name = it.getString(nameIndex)
-                        contactsList.add(Contact(name))
+                        contactsList.add(Contact(id = id, name = name, groupId = null))
                     }
                 }
             }

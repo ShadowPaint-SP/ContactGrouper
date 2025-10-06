@@ -13,8 +13,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -36,10 +34,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navigation
+import de.drvlabs.contactgrouper.screens.AddGroupScreen
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
-import de.drvlabs.contactgrouper.views.ContactList
-import de.drvlabs.contactgrouper.views.GroupEditor
-
+import de.drvlabs.contactgrouper.screens.ContactsMainScreen
+import de.drvlabs.contactgrouper.screens.GroupDetailScreen
+import de.drvlabs.contactgrouper.screens.GroupsMainScreen
+import de.drvlabs.contactgrouper.viewmodels.ContactsViewModel
+import de.drvlabs.contactgrouper.viewmodels.GroupViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -50,6 +52,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private val groupViewModel: GroupViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -76,7 +79,6 @@ class MainActivity : ComponentActivity() {
                     }
                 )
 
-                var selectedScreen by remember { mutableStateOf<Screen>(Screen.Contacts) }
                 val navController = rememberNavController()
 //
 //              APP BASE
@@ -88,19 +90,37 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     if (hasPermission) {
+                        val contacts by viewModel.contacts.collectAsState()
                         NavHost(
                             navController = navController,
                             startDestination = Screen.Contacts.route, // Start-Screen
-                            modifier = Modifier.padding(innerPadding),
-                            enterTransition = {EnterTransition.None},
-                            exitTransition = {ExitTransition.None}
+                            modifier = Modifier.padding(innerPadding)
                         ) {
                             composable(Screen.Contacts.route) {
-                                val contacts = viewModel.contacts.collectAsState()
-                                ContactList(contacts = contacts.value)
+                                ContactsMainScreen(contacts = contacts)
                             }
-                            composable(Screen.Groups.route) {
-                                GroupEditor()
+                            navigation(
+                                startDestination = Screen.Groups.route,
+                                route = "groups_graph"
+                            ){
+                                composable(Screen.Groups.route) {
+                                    GroupsMainScreen(navController, groupViewModel, contacts
+                                    )
+                                }
+                                composable(Screen.AddGroup.route) {
+                                    AddGroupScreen(navController = navController, groupViewModel = groupViewModel)
+                                }
+                                composable(Screen.GroupDetails.route) { backStackEntry ->
+                                    val groupId = backStackEntry.arguments?.getInt("groupId")
+                                    if (groupId != null) {
+                                        GroupDetailScreen(
+                                            groupId = groupId,
+                                            groupViewModel = groupViewModel,
+                                            allContacts = contacts, // Pass the contact list here
+                                            navController = navController
+                                        )
+                                    }
+                                }
                             }
                         }
                     } else {

@@ -1,3 +1,6 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+local.properties
+/app/build
+deploymentTargetSelector.xml
