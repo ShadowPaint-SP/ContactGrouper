@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -35,13 +36,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
-import de.drvlabs.contactgrouper.screens.AddGroupScreen
+import androidx.room.Room
+import de.drvlabs.contactgrouper.groups.AddGroupScreen
+import de.drvlabs.contactgrouper.groups.GroupDatabase
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
 import de.drvlabs.contactgrouper.screens.ContactsMainScreen
-import de.drvlabs.contactgrouper.screens.GroupDetailScreen
-import de.drvlabs.contactgrouper.screens.GroupsMainScreen
+import de.drvlabs.contactgrouper.groups.GroupDetailScreen
+import de.drvlabs.contactgrouper.groups.GroupsMainScreen
 import de.drvlabs.contactgrouper.viewmodels.ContactsViewModel
-import de.drvlabs.contactgrouper.viewmodels.GroupViewModel
+import de.drvlabs.contactgrouper.groups.GroupViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -52,7 +55,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    private val groupViewModel: GroupViewModel by viewModels()
+
+    private val db by lazy {
+        Room.databaseBuilder(applicationContext,
+        GroupDatabase::class.java,
+        "groups.db"
+    ).build()
+    }
+    private val groupViewModel by viewModels<GroupViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return GroupViewModel(db.dao) as T
+                }
+            }
+        }
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -80,6 +98,8 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val navController = rememberNavController()
+
+                val state by groupViewModel.state.collectAsState()
 //
 //              APP BASE
 //
@@ -104,22 +124,18 @@ class MainActivity : ComponentActivity() {
                                 route = "groups_graph"
                             ){
                                 composable(Screen.Groups.route) {
-                                    GroupsMainScreen(navController, groupViewModel, contacts
-                                    )
+                                    GroupsMainScreen(navController,  contacts, state, groupViewModel::onEvent)
                                 }
                                 composable(Screen.AddGroup.route) {
-                                    AddGroupScreen(navController = navController, groupViewModel = groupViewModel)
+                                    AddGroupScreen(navController = navController,state= state, onEvent = groupViewModel::onEvent)
                                 }
-                                composable(Screen.GroupDetails.route) { backStackEntry ->
-                                    val groupId = backStackEntry.arguments?.getInt("groupId")
-                                    if (groupId != null) {
-                                        GroupDetailScreen(
-                                            groupId = groupId,
-                                            groupViewModel = groupViewModel,
-                                            allContacts = contacts, // Pass the contact list here
-                                            navController = navController
-                                        )
-                                    }
+                                composable(Screen.GroupDetails.route) { 
+                                    GroupDetailScreen(
+                                        state = state,
+                                        onEvent = groupViewModel::onEvent,
+                                        allContacts = contacts,
+                                        navController = navController
+                                    )
                                 }
                             }
                         }
@@ -141,6 +157,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun preview(){
+
 }
 
 @Composable

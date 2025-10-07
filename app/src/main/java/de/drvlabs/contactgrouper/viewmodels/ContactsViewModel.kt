@@ -13,8 +13,9 @@ import kotlinx.coroutines.launch
 
 data class Contact(
     val id: Int,
-    val name:String,
-    val groupId: String? = null // null means it's not in any group
+    val name: String,
+    val photoUri: String?,
+    val groupId: Int? = null // null means it's not in any group
 )
 
 class ContactsViewModel(private val contentResolver: ContentResolver) : ViewModel() {
@@ -47,8 +48,9 @@ class ContactsViewModel(private val contentResolver: ContentResolver) : ViewMode
         viewModelScope.launch {
             val contactsList = mutableListOf<Contact>()
             val projection = arrayOf(
-                ContactsContract.Data.CONTACT_ID, // Use this more reliable constant
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY
+                ContactsContract.Data.CONTACT_ID,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+                ContactsContract.CommonDataKinds.Phone.PHOTO_URI
             )
             val cursor = contentResolver.query(
                 ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -63,15 +65,17 @@ class ContactsViewModel(private val contentResolver: ContentResolver) : ViewMode
                 val idIndex = it.getColumnIndex(ContactsContract.Data.CONTACT_ID)
                 val nameIndex =
                     it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
+                val photoUriIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
+
                 if (nameIndex != -1) {
                     while (it.moveToNext()) {
                         val id = it.getString(idIndex).toInt()
                         val name = it.getString(nameIndex)
-                        contactsList.add(Contact(id = id, name = name, groupId = null))
+                        val photoUri = it.getString(photoUriIndex)
+                        contactsList.add(Contact(id = id, name = name, photoUri = photoUri, groupId = null))
                     }
                 }
             }
-            // Use distinctBy to remove duplicates, as before
             _contacts.value = contactsList.distinctBy { it.name }
         }
     }

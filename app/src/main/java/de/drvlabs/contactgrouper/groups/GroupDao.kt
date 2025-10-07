@@ -1,4 +1,4 @@
-package de.drvlabs.contactgrouper.viewmodels
+package de.drvlabs.contactgrouper.groups
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -21,7 +21,7 @@ interface GroupDao {
     fun getAllGroups(): Flow<List<ContactGroup>>
 
     @Query("SELECT * FROM ContactGroup WHERE id = :groupId ORDER BY name ASC")
-    fun getGroupById(groupId: Int): ContactGroup
+    fun getGroupById(groupId: Int): Flow<ContactGroup>
 
     @Query("SELECT * FROM ContactGroup WHERE contactIds LIKE '%' || :contactId || '%' ORDER BY name ASC")
     fun getAllGroupsByContact(contactId: String): Flow<List<ContactGroup>>

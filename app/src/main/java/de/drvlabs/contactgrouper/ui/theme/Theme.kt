@@ -342,7 +342,7 @@ fun AppTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.navigationBarColor = colorScheme.surfaceContainer.toArgb()
+            window.navigationBarColor = colorScheme.surfaceVariant.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
