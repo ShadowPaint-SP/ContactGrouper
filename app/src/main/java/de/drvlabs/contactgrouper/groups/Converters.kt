@@ -17,6 +17,16 @@ class Converters {
     }
 
     @TypeConverter
+    fun ulongToLong(value: ULong): Long {
+        return value.toLong()
+    }
+
+    @TypeConverter
+    fun longToUlong(value: Long): ULong {
+        return value.toULong()
+    }
+
+    @TypeConverter
     fun fromIntToList(value: String): List<Long> {
         if (value.isEmpty()) {
             return emptyList()

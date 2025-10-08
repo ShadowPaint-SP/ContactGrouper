@@ -13,6 +13,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -34,6 +39,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.room.Room
@@ -103,12 +109,18 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
 
+
+                val bottomBarRoutes = navbarItems.map { it.route }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
-                        BottomNavigation(navController = navController)
+                        if (currentRoute in bottomBarRoutes) {
+                            BottomNavigation(navController = navController)
+                        }
                     }
                 ) { innerPadding ->
                     if (hasPermission) {
@@ -117,13 +129,15 @@ class MainActivity : ComponentActivity() {
                         NavHost(
                             navController = navController,
                             startDestination = "contacts_graph",
-                            modifier = Modifier.padding(innerPadding)
+                            modifier = Modifier.padding(innerPadding),
+                            enterTransition = { fadeIn(animationSpec = tween(400)) },
+                            exitTransition = { fadeOut(animationSpec = tween(400)) }
                         ) {
                             navigation(
-                                startDestination = Screen.Contacts.route,
+                                startDestination = Screen.NavBarScreen.Contacts.route,
                                 route = "contacts_graph"
                             ){
-                                composable(Screen.Contacts.route) {
+                                composable(Screen.NavBarScreen.Contacts.route) {
                                     ContactsMainScreen(
                                         navController = navController,
                                         contactState = contactState,
@@ -131,7 +145,10 @@ class MainActivity : ComponentActivity() {
                                         groupState = groupState,
                                         onGroupEvent = groupViewModel::onEvent)
                                 }
-                                composable(Screen.ContactDetails.route) {
+                                composable(Screen.ContactDetails.route,
+                                    enterTransition = { slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) },
+                                    exitTransition = { slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) }
+                                ) {
                                     ContactDetailScreen(
                                         navController = navController,
                                         contactState = contactState,
@@ -140,23 +157,28 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             navigation(
-                                startDestination = Screen.Groups.route,
+                                startDestination = Screen.NavBarScreen.Groups.route,
                                 route = "groups_graph"
                             ){
-                                composable(Screen.Groups.route) {
+                                composable(Screen.NavBarScreen.Groups.route) {
                                     GroupsMainScreen(
                                         navController = navController,
                                         contactState = contactState,
                                         groupState = groupState,
                                         onEvent = groupViewModel::onEvent)
                                 }
-                                composable(Screen.AddGroup.route) {
+                                composable(Screen.AddGroup.route,
+                                    enterTransition = { slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) },
+                                    exitTransition = { slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) }) {
                                     AddGroupScreen(
                                         navController = navController,
                                         state = groupState,
                                         onEvent = groupViewModel::onEvent)
                                 }
-                                composable(Screen.GroupDetails.route) { 
+                                composable(Screen.GroupDetails.route,
+                                    enterTransition = { slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) },
+                                    exitTransition = { slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) }
+                                ) {
                                     GroupDetailScreen(
                                         navController = navController,
                                         contactState = contactState,

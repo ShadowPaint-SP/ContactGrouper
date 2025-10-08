@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -77,23 +78,23 @@ fun GroupsMainScreen(navController: NavController,
             }
         }
         FloatingActionButton(
-            onClick = {
-                navController.navigate("AddGroup")
-                },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 16.dp, end= 24.dp)
+                .padding(bottom = 16.dp, end = 24.dp),
+            onClick = { navController.navigate("AddGroup") }
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add Group")
         }
-
     }
 }
 
 @Composable
 fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = group.color),
         //elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -128,6 +129,7 @@ fun AddGroupScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         navController.popBackStack()
+                        onEvent(GroupEvent.SetGroupName(""))
                     }) {
                         Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
                     }
@@ -138,6 +140,7 @@ fun AddGroupScreen(
                             if (state.name.isNotBlank()) {
                                 onEvent(GroupEvent.SaveGroup)
                                 navController.popBackStack()
+                                onEvent(GroupEvent.SetGroupName(""))
                             } else {
                                 showNameError = true
                             }
@@ -221,7 +224,9 @@ fun GroupDetailScreen(
     ) { padding ->
         if (group == null) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 Text("Group not found!")
@@ -231,7 +236,10 @@ fun GroupDetailScreen(
 
         val groupContacts = allContacts.filter { it.groupId == group.id }
 
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(16.dp)) {
             // Group Info Section
             Text("Members: ${groupContacts.size}", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))

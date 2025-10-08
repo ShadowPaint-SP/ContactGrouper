@@ -16,18 +16,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class Screen(val route: String, val selected: ImageVector, val unselected: ImageVector) {
-    object Contacts : Screen("Contacts", Icons.Filled.Person, Icons.Outlined.Person)
+    sealed class NavBarScreen(route: String, selected: ImageVector, unselected: ImageVector, val graphRoute: String) : Screen(route, selected, unselected) {
+        object Contacts : NavBarScreen("Contacts", Icons.Filled.Person, Icons.Outlined.Person, "contacts_graph")
+        object Groups : NavBarScreen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups, "groups_graph")
+    }
+
+    //object Contacts : Screen("Contacts", Icons.Filled.Person, Icons.Outlined.Person)
     object ContactDetails : Screen("ContactDetails", Icons.Filled.Person, Icons.Outlined.Person)
-    object Groups : Screen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups)
+    //object Groups : Screen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups)
     object AddGroup : Screen("AddGroup", Icons.Filled.Group, Icons.Outlined.Group)
     object GroupDetails : Screen("GroupDetails", Icons.Filled.Group, Icons.Outlined.Group)
 }
 
-val navbarItems = listOf(Screen.Contacts, Screen.Groups)
+val navbarItems = listOf(Screen.NavBarScreen.Contacts, Screen.NavBarScreen.Groups)
 
 @Composable
 fun BottomNavigation(navController: NavHostController) {
@@ -49,8 +55,8 @@ fun BottomNavigation(navController: NavHostController) {
                 label = { Text(screen.route) },
                 selected = isSelected,
                 onClick = {
-                    navController.navigate(screen.route) {
-                        popUpTo(navController.graph.startDestinationId) {
+                    navController.navigate(screen.graphRoute) {
+                        popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }
                         launchSingleTop = true

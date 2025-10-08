@@ -1,5 +1,7 @@
 package de.drvlabs.contactgrouper.groups
 
+import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.alpha
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +11,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 class GroupViewModel(private val dao: GroupDao) : ViewModel() {
 
@@ -39,7 +42,6 @@ class GroupViewModel(private val dao: GroupDao) : ViewModel() {
                 val ringtoneUri = state.value.ringtoneUri
                 val contacts = state.value.contacts
 
-
                 if (name.isBlank()) {
                     return
                 }
@@ -47,13 +49,12 @@ class GroupViewModel(private val dao: GroupDao) : ViewModel() {
                 val group = Group(
                     name = name,
                     ringtoneUri = ringtoneUri,
+                    color = Color(Random.nextLong(0xFFFFFF)).copy(alpha = 0.5f),
                     contactIds = contacts
                 )
                 viewModelScope.launch {
                     dao.upsertGroup(group)
                 }
-
-
             }
 
             is GroupEvent.SetGroupMembers -> TODO()
