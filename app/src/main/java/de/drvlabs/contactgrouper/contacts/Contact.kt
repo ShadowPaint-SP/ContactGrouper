@@ -1,16 +1,5 @@
 package de.drvlabs.contactgrouper.contacts
 
-//data class Contact(
-//    val id: Int,
-//    val name: String,
-//    val photoUri: String?,
-//    val groupId: Int? = null
-//)
-
-
-////
-
-
 /**
  * Represents a single piece of typed data for a contact, like a phone number or email.
  *
@@ -48,7 +37,7 @@ data class Address(
  * @property emails A list of all email addresses for the contact.
  * @property addresses A list of all postal addresses for the contact.
  *
- * @property groupId Your app's internal group ID. This is not from the phone's contacts.
+ * @property groupId Internal group ID.
  */
 data class Contact(
     // Core Identifiers

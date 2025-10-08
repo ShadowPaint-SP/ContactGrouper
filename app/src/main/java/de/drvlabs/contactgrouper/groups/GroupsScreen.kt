@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -42,17 +43,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import de.drvlabs.contactgrouper.contacts.ContactList
-import de.drvlabs.contactgrouper.contacts.Contact
+import de.drvlabs.contactgrouper.contacts.ContactState
 
 
 @Composable
 fun GroupsMainScreen(navController: NavController,
-                     allContacts: List<Contact>,
-                     state: GroupState,
+                     contactState: ContactState,
+                     groupState: GroupState,
                      onEvent: (GroupEvent) -> Unit
 ) {
+    val allContacts = contactState.contacts
     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-        if (state.groups.isEmpty()) {
+        if (groupState.groups.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -65,7 +67,7 @@ fun GroupsMainScreen(navController: NavController,
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(state.groups) { group ->
+                items(groupState.groups) { group ->
                     val memberCount = allContacts.count { it.groupId == group.id }
                     GroupCard(group = group, memberCount = memberCount) {
                         onEvent(GroupEvent.SetSelectedGroup(group))
@@ -188,12 +190,13 @@ fun AddGroupScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailScreen(
-    state: GroupState,
-    onEvent: (GroupEvent) -> Unit,
-    allContacts: List<Contact>,
-    navController: NavController
+    navController: NavController,
+    contactState: ContactState,
+    groupState: GroupState,
+    onEvent: (GroupEvent) -> Unit
 ) {
-    val group = state.selectedGroup
+    val group = groupState.selectedGroup
+    val allContacts = contactState.contacts
     Scaffold(
         topBar = {
             TopAppBar(
@@ -230,14 +233,19 @@ fun GroupDetailScreen(
 
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             // Group Info Section
-            Text("Members (${groupContacts.size})", style = MaterialTheme.typography.titleLarge)
+            Text("Members: ${groupContacts.size}", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
 
             // Member List
-            if (groupContacts.isEmpty()) {
-                Text("No contacts have been added to this group yet.")
-            } else {
-                ContactList(contacts = groupContacts, onContactClick = {return@ContactList}, onContactLongClick = {return@ContactList})
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(24.dp)
+            ){
+                if (groupContacts.isEmpty()) {
+                    Text("No contacts have been added to this group yet.", modifier = Modifier.padding(16.dp))
+                } else {
+                    ContactList(contacts = groupContacts, onContactClick = {return@ContactList}, onContactLongClick = {return@ContactList})
+                }
             }
             // TODO: Add a button here to navigate to a contact picker screen
             // to add/remove members from the group.

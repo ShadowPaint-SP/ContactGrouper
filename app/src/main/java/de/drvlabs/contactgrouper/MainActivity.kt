@@ -55,15 +55,16 @@ class MainActivity : ComponentActivity() {
             "groups.db"
         ).build()
     }
-
-    private val contactViewModel: ContactsViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return ContactsViewModel(contentResolver, db.dao) as T
+    private val contactViewModel by viewModels<ContactsViewModel>(
+        factoryProducer = {
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
+                    return ContactsViewModel(contentResolver, db.dao) as T
+                }
             }
         }
-    }
+    )
 
     private val groupViewModel by viewModels<GroupViewModel>(
         factoryProducer = {
@@ -102,8 +103,6 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val navController = rememberNavController()
-                val groupState by groupViewModel.state.collectAsState()
-                val contactState by contactViewModel.state.collectAsState()
 
 
                 Scaffold(
@@ -113,7 +112,8 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     if (hasPermission) {
-                        val contacts by contactViewModel.contacts.collectAsState()
+                        val groupState by groupViewModel.state.collectAsState()
+                        val contactState by contactViewModel.state.collectAsState()
                         NavHost(
                             navController = navController,
                             startDestination = "contacts_graph",
@@ -145,10 +145,10 @@ class MainActivity : ComponentActivity() {
                             ){
                                 composable(Screen.Groups.route) {
                                     GroupsMainScreen(
-                                        navController,
-                                        contacts,
-                                        groupState,
-                                        groupViewModel::onEvent)
+                                        navController = navController,
+                                        contactState = contactState,
+                                        groupState = groupState,
+                                        onEvent = groupViewModel::onEvent)
                                 }
                                 composable(Screen.AddGroup.route) {
                                     AddGroupScreen(
@@ -158,10 +158,10 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable(Screen.GroupDetails.route) { 
                                     GroupDetailScreen(
-                                        state = groupState,
-                                        onEvent = groupViewModel::onEvent,
-                                        allContacts = contacts,
-                                        navController = navController
+                                        navController = navController,
+                                        contactState = contactState,
+                                        groupState = groupState,
+                                        onEvent = groupViewModel::onEvent
                                     )
                                 }
                             }
@@ -204,7 +204,7 @@ fun PermissionDialog(
     val onButtonClick: () -> Unit
 
     if (permanentlyDenied) {
-        dialogText = "Um die App zu nutzen, ist der Zugriff auf Kontakte notwendig. Bitte aktivieren Sie die Berechtigung manuell in den App-Einstellungen."
+        dialogText = "Um die App zu nutzen, ist der Zugriff auf Kontakte notwendig. Bitte aktivieren Sie die Berechtigung manuell in den App-Einstellungen. Starte Die App anschließend neu"
         buttonText = "Zu den Einstellungen"
         onButtonClick = { context.openAppSettings() }
     } else {

@@ -1,110 +1,3 @@
-//package de.drvlabs.contactgrouper.contacts
-//
-//import android.content.ContentResolver
-//import android.database.ContentObserver
-//import android.os.Handler
-//import android.os.Looper
-//import android.provider.ContactsContract
-//import androidx.lifecycle.ViewModel
-//import androidx.lifecycle.viewModelScope
-//import de.drvlabs.contactgrouper.groups.GroupDao
-//import kotlinx.coroutines.flow.MutableStateFlow
-//import kotlinx.coroutines.flow.SharingStarted
-//import kotlinx.coroutines.flow.StateFlow
-//import kotlinx.coroutines.flow.combine
-//import kotlinx.coroutines.flow.stateIn
-//import kotlinx.coroutines.launch
-//
-//
-//class ContactsViewModel(
-//    private val contentResolver: ContentResolver,
-//    private val groupDao: GroupDao
-//) : ViewModel() {
-//
-//    private val _rawContacts = MutableStateFlow<List<Contact>>(emptyList())
-//    val contacts: StateFlow<List<Contact>> = combine(
-//        _rawContacts,
-//        groupDao.getAllGroups()
-//    ) { contacts, groups ->
-//        // TODO check if this is the best way
-//        val contactToGroupMap = mutableMapOf<Int, Int>()
-//        groups.forEach { group ->
-//            group.contactIds.forEach { contactId ->
-//                contactId.let { idAsInt ->
-//                    if (!contactToGroupMap.containsKey(idAsInt)) {
-//                        contactToGroupMap[idAsInt] = group.id
-//                    }
-//                }
-//            }
-//        }
-//        contacts.map { contact ->
-//            contact.copy(groupId = contactToGroupMap[contact.id])
-//        }
-//    }.stateIn(
-//        viewModelScope,
-//        SharingStarted.WhileSubscribed(5000),
-//        emptyList()
-//    )
-//
-//
-//    private val contactsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-//        override fun onChange(selfChange: Boolean) {
-//            super.onChange(selfChange)
-//            loadContacts()
-//        }
-//    }
-//
-//    init {
-//        loadContacts()
-//        contentResolver.registerContentObserver(
-//            ContactsContract.Contacts.CONTENT_URI,
-//            true, // Notify descendants of this URI as well
-//            contactsObserver
-//        )
-//    }
-//
-//    override fun onCleared() {
-//        super.onCleared()
-//        contentResolver.unregisterContentObserver(contactsObserver)
-//    }
-//
-//    private fun loadContacts() {
-//        viewModelScope.launch {
-//            val contactsList = mutableListOf<Contact>()
-//            val projection = arrayOf(
-//                ContactsContract.Data.CONTACT_ID,
-//                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
-//                ContactsContract.CommonDataKinds.Phone.PHOTO_URI
-//            )
-//            val cursor = contentResolver.query(
-//                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-//                projection,
-//                null,
-//                null,
-//                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC"
-//            )
-//
-//            cursor?.use {
-//
-//                val idIndex = it.getColumnIndex(ContactsContract.Data.CONTACT_ID)
-//                val nameIndex =
-//                    it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
-//                val photoUriIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
-//
-//                if (nameIndex != -1) {
-//                    while (it.moveToNext()) {
-//                        val id = it.getString(idIndex).toInt()
-//                        val name = it.getString(nameIndex)
-//                        val photoUri = it.getString(photoUriIndex)
-//                        contactsList.add(Contact(id = id, name = name, photoUri = photoUri, groupId = null))
-//                    }
-//                }
-//            }
-//            _rawContacts.value = contactsList
-//        }
-//    }
-//}
-
 package de.drvlabs.contactgrouper.contacts
 
 import android.content.ContentResolver
@@ -115,8 +8,6 @@ import android.provider.ContactsContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.drvlabs.contactgrouper.groups.GroupDao
-import de.drvlabs.contactgrouper.groups.GroupEvent
-import de.drvlabs.contactgrouper.groups.GroupState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -241,9 +132,11 @@ class ContactsViewModel(
             "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC"
         )?.use { cursor ->
             val idIndex = cursor.getColumnIndex(ContactsContract.Contacts._ID)
-            val nameIndex = cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
+            val nameIndex =
+                cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
             val photoIndex = cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_URI)
-            val thumbnailIndex = cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_THUMBNAIL_URI)
+            val thumbnailIndex =
+                cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_THUMBNAIL_URI)
             val ringtoneIndex = cursor.getColumnIndex(ContactsContract.Contacts.CUSTOM_RINGTONE)
 
             while (cursor.moveToNext()) {
@@ -284,26 +177,31 @@ class ContactsViewModel(
             val mimeTypeIndex = cursor.getColumnIndex(ContactsContract.Data.MIMETYPE)
             val data1Index = cursor.getColumnIndex(ContactsContract.Data.DATA1)
             val data2Index = cursor.getColumnIndex(ContactsContract.Data.DATA2)
-            val formattedAddressIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS)
+            val formattedAddressIndex =
+                cursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS)
 
             while (cursor.moveToNext()) {
                 val contactId = cursor.getLong(contactIdIndex)
-                val contact = contactMap[contactId] ?: continue // Skip if contact somehow isn't in our map
+                val contact = contactMap[contactId]
+                    ?: continue // Skip if contact somehow isn't in our map
                 val mimeType = cursor.getString(mimeTypeIndex)
 
                 when (mimeType) {
                     ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE -> {
                         val number = cursor.getString(data1Index) ?: continue
                         val typeId = cursor.getInt(data2Index)
-                        val updatedPhones = contact.phoneNumbers + ContactDataItem(number,  typeId)
+                        val updatedPhones =
+                            contact.phoneNumbers + ContactDataItem(number, typeId)
                         contactMap[contactId] = contact.copy(phoneNumbers = updatedPhones)
                     }
+
                     ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE -> {
                         val email = cursor.getString(data1Index) ?: continue
                         val typeId = cursor.getInt(data2Index)
                         val updatedEmails = contact.emails + ContactDataItem(email, typeId)
                         contactMap[contactId] = contact.copy(emails = updatedEmails)
                     }
+
                     ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE -> {
                         val typeId = cursor.getInt(data2Index)
                         val address = Address(
@@ -313,8 +211,10 @@ class ContactsViewModel(
                         val updatedAddresses = contact.addresses + address
                         contactMap[contactId] = contact.copy(addresses = updatedAddresses)
                     }
+
                     ContactsContract.CommonDataKinds.Nickname.CONTENT_ITEM_TYPE -> {
-                        contactMap[contactId] = contact.copy(nickname = cursor.getString(data1Index))
+                        contactMap[contactId] =
+                            contact.copy(nickname = cursor.getString(data1Index))
                     }
                 }
             }
