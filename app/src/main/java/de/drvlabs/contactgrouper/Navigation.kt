@@ -21,6 +21,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class Screen(val route: String, val selected: ImageVector, val unselected: ImageVector) {
     object Contacts : Screen("Contacts", Icons.Filled.Person, Icons.Outlined.Person)
+    object ContactDetails : Screen("ContactDetails", Icons.Filled.Person, Icons.Outlined.Person)
     object Groups : Screen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups)
     object AddGroup : Screen("AddGroup", Icons.Filled.Group, Icons.Outlined.Group)
     object GroupDetails : Screen("GroupDetails", Icons.Filled.Group, Icons.Outlined.Group)

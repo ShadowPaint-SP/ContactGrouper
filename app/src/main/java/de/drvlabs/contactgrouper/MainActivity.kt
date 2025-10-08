@@ -37,35 +37,39 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.room.Room
+import de.drvlabs.contactgrouper.contacts.ContactDetailScreen
 import de.drvlabs.contactgrouper.groups.AddGroupScreen
 import de.drvlabs.contactgrouper.groups.GroupDatabase
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
-import de.drvlabs.contactgrouper.screens.ContactsMainScreen
+import de.drvlabs.contactgrouper.contacts.ContactsMainScreen
 import de.drvlabs.contactgrouper.groups.GroupDetailScreen
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
-import de.drvlabs.contactgrouper.viewmodels.ContactsViewModel
+import de.drvlabs.contactgrouper.contacts.ContactsViewModel
 import de.drvlabs.contactgrouper.groups.GroupViewModel
 
-
 class MainActivity : ComponentActivity() {
-    private val viewModel: ContactsViewModel by viewModels {
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            GroupDatabase::class.java,
+            "groups.db"
+        ).build()
+    }
+
+    private val contactViewModel: ContactsViewModel by viewModels {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ContactsViewModel(contentResolver) as T
+                @Suppress("UNCHECKED_CAST")
+                return ContactsViewModel(contentResolver, db.dao) as T
             }
         }
     }
 
-    private val db by lazy {
-        Room.databaseBuilder(applicationContext,
-        GroupDatabase::class.java,
-        "groups.db"
-    ).build()
-    }
     private val groupViewModel by viewModels<GroupViewModel>(
         factoryProducer = {
             object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    @Suppress("UNCHECKED_CAST")
                     return GroupViewModel(db.dao) as T
                 }
             }
@@ -98,11 +102,10 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val navController = rememberNavController()
+                val groupState by groupViewModel.state.collectAsState()
+                val contactState by contactViewModel.state.collectAsState()
 
-                val state by groupViewModel.state.collectAsState()
-//
-//              APP BASE
-//
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
@@ -110,28 +113,52 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     if (hasPermission) {
-                        val contacts by viewModel.contacts.collectAsState()
+                        val contacts by contactViewModel.contacts.collectAsState()
                         NavHost(
                             navController = navController,
-                            startDestination = Screen.Contacts.route, // Start-Screen
+                            startDestination = "contacts_graph",
                             modifier = Modifier.padding(innerPadding)
                         ) {
-                            composable(Screen.Contacts.route) {
-                                ContactsMainScreen(contacts = contacts)
+                            navigation(
+                                startDestination = Screen.Contacts.route,
+                                route = "contacts_graph"
+                            ){
+                                composable(Screen.Contacts.route) {
+                                    ContactsMainScreen(
+                                        navController = navController,
+                                        contactState = contactState,
+                                        onContactEvent = contactViewModel::onEvent,
+                                        groupState = groupState,
+                                        onGroupEvent = groupViewModel::onEvent)
+                                }
+                                composable(Screen.ContactDetails.route) {
+                                    ContactDetailScreen(
+                                        navController = navController,
+                                        contactState = contactState,
+                                        groupState = groupState
+                                    )
+                                }
                             }
                             navigation(
                                 startDestination = Screen.Groups.route,
                                 route = "groups_graph"
                             ){
                                 composable(Screen.Groups.route) {
-                                    GroupsMainScreen(navController,  contacts, state, groupViewModel::onEvent)
+                                    GroupsMainScreen(
+                                        navController,
+                                        contacts,
+                                        groupState,
+                                        groupViewModel::onEvent)
                                 }
                                 composable(Screen.AddGroup.route) {
-                                    AddGroupScreen(navController = navController,state= state, onEvent = groupViewModel::onEvent)
+                                    AddGroupScreen(
+                                        navController = navController,
+                                        state = groupState,
+                                        onEvent = groupViewModel::onEvent)
                                 }
                                 composable(Screen.GroupDetails.route) { 
                                     GroupDetailScreen(
-                                        state = state,
+                                        state = groupState,
                                         onEvent = groupViewModel::onEvent,
                                         allContacts = contacts,
                                         navController = navController
@@ -206,4 +233,3 @@ fun Context.openAppSettings() {
     )
     startActivity(intent)
 }
-

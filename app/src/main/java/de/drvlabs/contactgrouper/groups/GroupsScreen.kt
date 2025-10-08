@@ -41,8 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import de.drvlabs.contactgrouper.screens.ContactsList
-import de.drvlabs.contactgrouper.viewmodels.Contact
+import de.drvlabs.contactgrouper.contacts.ContactList
+import de.drvlabs.contactgrouper.contacts.Contact
 
 
 @Composable
@@ -77,7 +77,6 @@ fun GroupsMainScreen(navController: NavController,
         FloatingActionButton(
             onClick = {
                 navController.navigate("AddGroup")
-                //onEvent(GroupEvent.ShowDialog)
                 },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -90,7 +89,7 @@ fun GroupsMainScreen(navController: NavController,
 }
 
 @Composable
-fun GroupCard(group: ContactGroup, memberCount: Int, onClick: () -> Unit) {
+fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         //elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -238,7 +237,7 @@ fun GroupDetailScreen(
             if (groupContacts.isEmpty()) {
                 Text("No contacts have been added to this group yet.")
             } else {
-                ContactsList(groupContacts)
+                ContactList(contacts = groupContacts, onContactClick = {return@ContactList}, onContactLongClick = {return@ContactList})
             }
             // TODO: Add a button here to navigate to a contact picker screen
             // to add/remove members from the group.
