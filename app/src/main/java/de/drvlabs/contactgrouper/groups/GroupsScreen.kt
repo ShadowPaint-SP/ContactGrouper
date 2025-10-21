@@ -1,5 +1,9 @@
 package de.drvlabs.contactgrouper.groups
 
+import android.app.Activity
+import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -40,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -116,11 +121,20 @@ fun AddGroupScreen(
     navController: NavController
 ) {
     var showNameError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri -> state.ringtoneUri = uri }
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                @Suppress("DEPRECATION")
+                val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                onEvent(GroupEvent.SetRingtoneUri(uri))
+            }
+        }
     )
+
+    val ringtonePickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
 
     Scaffold(
         topBar = {
@@ -175,12 +189,14 @@ fun AddGroupScreen(
                 Text("Group name cannot be empty.", color = MaterialTheme.colorScheme.error)
             }
 
-            Button(onClick = { ringtonePickerLauncher.launch("audio/ringtone") }) {
+            Button(onClick = { ringtonePickerLauncher.launch(ringtonePickerIntent) }) {
                 Text(if (state.ringtoneUri == null) "Assign Ringtone" else "Change Ringtone")
             }
 
             state.ringtoneUri?.let {
-                Text("Ringtone selected: ${it.path?.substringAfterLast('/') ?: "Custom"}")
+                val ringtone = RingtoneManager.getRingtone(context, it)
+                val title = ringtone.getTitle(context)
+                Text("Ringtone selected: $title")
             }
         }
 
