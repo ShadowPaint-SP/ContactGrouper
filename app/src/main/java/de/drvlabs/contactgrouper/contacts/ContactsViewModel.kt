@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 
 class ContactsViewModel(
     private val contentResolver: ContentResolver,
-    private val groupDao: GroupDao
+    groupDao: GroupDao
 ) : ViewModel() {
     private val _state = MutableStateFlow(ContactState())
 
@@ -33,10 +33,15 @@ class ContactsViewModel(
     ) { contacts, groups ->
         // Create a map of [Contact ID] -> [Group ID] for efficient lookup.
         // The key is a Long to match the contact ID type.
+        // IMPORTANT: Each contact can only be in ONE group. If a contact appears in multiple groups,
+        // the FIRST group wins. This ensures data consistency.
         val contactToGroupMap = mutableMapOf<Long, Int>()
         groups.forEach { group ->
             group.contactIds.forEach { contactId ->
-                contactToGroupMap[contactId.toLong()] = group.id
+                // Only add if not already assigned to another group
+                if (!contactToGroupMap.containsKey(contactId)) {
+                    contactToGroupMap[contactId] = group.id
+                }
             }
         }
 
@@ -69,7 +74,21 @@ class ContactsViewModel(
                     )
                 }
             }
-        }}
+            is ContactEvent.SetRingtoneUri -> TODO()
+            is ContactEvent.ClearContactGroup -> {
+                _state.update { state ->
+                    state.selectedContact?.let { contact ->
+                        if (contact.id == event.contactId) {
+                            // Update the selected contact to remove the group assignment
+                            state.copy(selectedContact = contact.copy(groupId = null))
+                        } else {
+                            state
+                        }
+                    } ?: state
+                }
+            }
+        }
+    }
 
     private val contactsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {

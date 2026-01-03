@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +29,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,7 +53,6 @@ import de.drvlabs.contactgrouper.groups.GroupState
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContactsMainScreen(
-    modifier: Modifier? = Modifier,
     navController: NavController,
     contactState: ContactState,
     onContactEvent: (ContactEvent) -> Unit,
@@ -71,6 +72,7 @@ fun ContactsMainScreen(
     Box{
         ContactList(
             contacts = contacts,
+            groups = groupState.groups,
             selectedContacts = selectedContacts,
             onContactClick = { contact ->
                 if (isInSelectionMode) {
@@ -170,11 +172,11 @@ private fun AssignToGroupDialog(
 fun ContactList(
     modifier: Modifier = Modifier,
     contacts: List<Contact>,
+    groups: List<Group> = emptyList(),
     selectedContacts: Set<Long> = emptySet(),
     onContactClick: (Contact) -> Unit,
     onContactLongClick: (Contact) -> Unit
 ){
-    // After
     val groupedContacts = contacts.groupBy { it.displayName.first().uppercase() }
     val haptic = LocalHapticFeedback.current
 
@@ -293,6 +295,14 @@ fun ContactList(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 style = MaterialTheme.typography.bodyLarge,
                             )
+                            if (contact.groupId != null) {
+                                Spacer(modifier = Modifier.weight(1f))
+                                val group = groups.find { it.id == contact.groupId }
+                                if (group != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    GroupBadge(group = group)
+                                }
+                            }
                         }
                     }
                 }
@@ -301,5 +311,26 @@ fun ContactList(
                 Spacer(modifier = Modifier.size(8.dp))
             }
         }
+    }
+}
+
+/**
+ * Displays a group label badge with the group name and color.
+ */
+@Composable
+private fun GroupBadge(group: Group) {
+    Surface(
+        modifier = Modifier
+            .padding(top = 4.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        color = group.color,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = group.name,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            color = androidx.compose.ui.graphics.Color.White
+        )
     }
 }

@@ -12,22 +12,29 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -216,23 +223,56 @@ fun GroupDetailScreen(
 ) {
     val group = groupState.selectedGroup
     val allContacts = contactState.contacts
+    var showMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                @Suppress("DEPRECATION")
+                val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                group?.let { onEvent(GroupEvent.ChangeGroupRingtone(it.id, uri)) }
+            }
+        }
+    )
+
+    val ringtonePickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${group?.name} Details") },
+                title = { Text("") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            group?.let { onEvent(GroupEvent.DeleteGroup(it)) }
-                            navController.popBackStack()
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Settings")
                         }
-                    ) {
-                        Icon(Icons.Default.DeleteForever, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Change Ringtone") },
+                                onClick = {
+                                    showMenu = false
+                                    ringtonePickerLauncher.launch(ringtonePickerIntent)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete Group") },
+                                onClick = {
+                                    showMenu = false
+                                    group?.let { onEvent(GroupEvent.DeleteGroup(it)) }
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
                     }
                 }
             )
@@ -252,27 +292,99 @@ fun GroupDetailScreen(
 
         val groupContacts = allContacts.filter { it.groupId == group.id }
 
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .padding(16.dp)) {
-            // Group Info Section
-            Text("Members: ${groupContacts.size}", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Member List
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            // Group Header Section - Visual Highlight
             Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = RoundedCornerShape(24.dp)
-            ){
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = group.color)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(100.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = group.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "${groupContacts.size} member${if (groupContacts.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    // Ringtone Display Section
+                    Spacer(modifier = Modifier.weight(1f))
+                    group.ringtoneUri?.let {
+                        val ringtone = RingtoneManager.getRingtone(context, it)
+                        val title = ringtone.getTitle(context)
+                        Row(
+                            modifier = Modifier.fillMaxHeight()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LibraryMusic,
+                                contentDescription = "Ringtone",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                }
+
+            }
+
+            // Member List Header
+            Text(
+                text = "Members",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp),
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            // Member List Card
+            Card(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 if (groupContacts.isEmpty()) {
-                    Text("No contacts have been added to this group yet.", modifier = Modifier.padding(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No contacts have been added to this group yet.",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 } else {
-                    ContactList(contacts = groupContacts, onContactClick = {return@ContactList}, onContactLongClick = {return@ContactList})
+                    ContactList(contacts = groupContacts, groups = groupState.groups, onContactClick = {return@ContactList}, onContactLongClick = {return@ContactList})
                 }
             }
-            // TODO: Add a button here to navigate to a contact picker screen
-            // to add/remove members from the group.
         }
     }
 }

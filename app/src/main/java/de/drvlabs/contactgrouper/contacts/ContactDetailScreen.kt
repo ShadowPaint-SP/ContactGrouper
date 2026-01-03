@@ -1,5 +1,6 @@
 package de.drvlabs.contactgrouper.contacts
 
+import android.media.RingtoneManager
 import android.provider.ContactsContract
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocationOn
@@ -37,9 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import de.drvlabs.contactgrouper.groups.Group
+import de.drvlabs.contactgrouper.groups.GroupEvent
 import de.drvlabs.contactgrouper.groups.GroupState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +52,9 @@ import de.drvlabs.contactgrouper.groups.GroupState
 fun ContactDetailScreen(
     navController: NavController,
     contactState: ContactState,
-    groupState: GroupState
+    groupState: GroupState,
+    onGroupEvent: (GroupEvent) -> Unit,
+    onContactEvent: (ContactEvent) -> Unit
 ) {
     val contact = contactState.selectedContact!!//TODO make better
     Scaffold(
@@ -89,7 +96,6 @@ fun ContactDetailScreen(
                     }
                 }
             }
-
             if (contact.emails.isNotEmpty()) {
                 item {
                     DetailSection(title = "Email") {
@@ -103,7 +109,6 @@ fun ContactDetailScreen(
                     }
                 }
             }
-
             if (contact.addresses.isNotEmpty()) {
                 item {
                     DetailSection(title = "Address") {
@@ -120,10 +125,18 @@ fun ContactDetailScreen(
             if (contact.groupId != null){
                 item {
                     DetailSection(title = "Group") {
-                        DetailItem(
+                        val group = groupState.groups.find { it.id == contact.groupId }!!//TODO This is unsafe
+                        val context = LocalContext.current
+                        val ringtone = RingtoneManager.getRingtone( context,group.ringtoneUri)
+                        val title = ringtone.getTitle(context)
+
+                        DetailGroupItem(
                             icon = Icons.Default.Groups,
-                            value = groupState.groups.find { it.id == contact.groupId }!!.name,//TODO This is unsafe
-                            type =""
+                            onGroupEvent = onGroupEvent,
+                            onContactEvent = onContactEvent,
+                            contact = contact,
+                            group = group,
+                            type = "Ringtone: $title"
                         )
                     }
                 }
@@ -214,6 +227,46 @@ private fun DetailItem(icon: ImageVector, value: String, type: String?) {
     }
 }
 
+@Composable
+private fun DetailGroupItem(icon: ImageVector, contact: Contact, group: Group, type: String?,
+                            onGroupEvent: (GroupEvent) -> Unit,
+                            onContactEvent: (ContactEvent) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(text = group.name, style = MaterialTheme.typography.bodyLarge)
+            type?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.CenterEnd
+        ){
+            IconButton(
+                onClick = { 
+                    onGroupEvent(GroupEvent.RemoveGroupMember(contact, group))
+                    onContactEvent(ContactEvent.ClearContactGroup(contact.id))
+                },
+                modifier = Modifier.padding(start = 16.dp)
+            ) {
+                Icon(Icons.Filled.DeleteForever, contentDescription = "Remove Group")
+            }
+        }
+    }
+}
 private fun getPhoneTypeLabel(type: Int): String {
     return when (type) {
         ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> "Home"

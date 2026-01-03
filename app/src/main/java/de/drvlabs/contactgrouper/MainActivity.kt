@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
             object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     @Suppress("UNCHECKED_CAST")
-                    return GroupViewModel(db.dao) as T
+                    return GroupViewModel(db.dao, applicationContext) as T
                 }
             }
         }
@@ -152,7 +152,9 @@ class MainActivity : ComponentActivity() {
                                     ContactDetailScreen(
                                         navController = navController,
                                         contactState = contactState,
-                                        groupState = groupState
+                                        groupState = groupState,
+                                        onGroupEvent = groupViewModel::onEvent,
+                                        onContactEvent = contactViewModel::onEvent
                                     )
                                 }
                             }
