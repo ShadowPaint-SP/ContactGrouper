@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -93,16 +92,24 @@ class MainActivity : ComponentActivity() {
                         ContextCompat.checkSelfPermission(
                             this,
                             Manifest.permission.READ_CONTACTS
+                        ) == PackageManager.PERMISSION_GRANTED &&
+                        ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.WRITE_CONTACTS
                         ) == PackageManager.PERMISSION_GRANTED
                     )
                 }
                 var permanentlyDenied by remember { mutableStateOf(false) }
 
                 val permissionLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestPermission(),
-                    onResult = { isGranted ->
-                        hasPermission = isGranted
-                        if (!isGranted && !shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)) {
+                    contract = ActivityResultContracts.RequestMultiplePermissions(),
+                    onResult = { permissions ->
+                        val readGranted = permissions[Manifest.permission.READ_CONTACTS] ?: false
+                        val writeGranted = permissions[Manifest.permission.WRITE_CONTACTS] ?: false
+                        hasPermission = readGranted && writeGranted
+                        if (!hasPermission && 
+                            (!shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS) ||
+                             !shouldShowRequestPermissionRationale(Manifest.permission.WRITE_CONTACTS))) {
                             permanentlyDenied = true
                         }
                     }
@@ -201,7 +208,12 @@ class MainActivity : ComponentActivity() {
                     PermissionDialog(
                         permanentlyDenied = permanentlyDenied,
                         onRequestPermission = {
-                            permissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                            permissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.READ_CONTACTS,
+                                    Manifest.permission.WRITE_CONTACTS
+                                )
+                            )
                         }
                     )
                 }
@@ -210,11 +222,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Preview
-@Composable
-fun preview(){
-
-}
+//@Preview
+//@Composable
+//fun preview(){
+//
+//}
 
 @Composable
 fun PermissionDialog(
@@ -228,12 +240,12 @@ fun PermissionDialog(
     val onButtonClick: () -> Unit
 
     if (permanentlyDenied) {
-        dialogText = "Um die App zu nutzen, ist der Zugriff auf Kontakte notwendig. Bitte aktivieren Sie die Berechtigung manuell in den App-Einstellungen. Starte Die App anschließend neu"
+        dialogText = "Um die App zu nutzen, sind Zugriffsberechtigungen auf Ihre Kontakte notwendig. Bitte aktivieren Sie die Berechtigungen manuell in den App-Einstellungen. Starten Sie die App anschließend neu."
         buttonText = "Zu den Einstellungen"
         onButtonClick = { context.openAppSettings() }
     } else {
-        dialogText = "Diese App benötigt Lesezugriff auf Ihre Kontakte, um sie in Gruppen zu organisieren. Bitte erteilen Sie die Berechtigung."
-        buttonText = "Berechtigung erteilen"
+        dialogText = "Diese App benötigt Lese- und Schreibzugriff auf Ihre Kontakte, um sie in Gruppen zu organisieren und Klingeltöne zuzuweisen. Bitte erteilen Sie die Berechtigungen."
+        buttonText = "Berechtigungen erteilen"
         onButtonClick = onRequestPermission
     }
 

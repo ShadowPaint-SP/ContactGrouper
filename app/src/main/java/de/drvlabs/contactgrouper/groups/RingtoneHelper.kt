@@ -1,14 +1,29 @@
 package de.drvlabs.contactgrouper.groups
 
+import android.Manifest
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.ContactsContract
+import androidx.core.content.ContextCompat
 
 /**
  * Helper utility for applying ringtones to contacts through the Android ContactsContract.
  */
 object RingtoneHelper {
+    
+    /**
+     * Check if the app has the WRITE_CONTACTS permission.
+     * 
+     * @param context Android context
+     * @return true if WRITE_CONTACTS permission is granted, false otherwise
+     */
+    private fun hasWriteContactsPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_CONTACTS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
     
     /**
      * Apply a ringtone to a contact in the system contacts database.
@@ -23,9 +38,19 @@ object RingtoneHelper {
         contactId: Long,
         ringtoneUri: Uri?
     ): Boolean {
+        // Check if we have write permission
+        if (!hasWriteContactsPermission(context)) {
+            return false
+        }
+        
         return try {
             val contentValues = ContentValues().apply {
-                put(ContactsContract.Contacts.CUSTOM_RINGTONE, ringtoneUri?.toString())
+                // Properly handle null case: use null instead of the string "null"
+                if (ringtoneUri != null) {
+                    put(ContactsContract.Contacts.CUSTOM_RINGTONE, ringtoneUri.toString())
+                } else {
+                    putNull(ContactsContract.Contacts.CUSTOM_RINGTONE)
+                }
             }
             
             val uri = ContactsContract.Contacts.CONTENT_URI

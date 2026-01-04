@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ import coil.compose.AsyncImage
 import de.drvlabs.contactgrouper.groups.Group
 import de.drvlabs.contactgrouper.groups.GroupEvent
 import de.drvlabs.contactgrouper.groups.GroupState
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,6 +121,22 @@ fun ContactDetailScreen(
                                 type = getAddressTypeLabel(address.typeConstant)
                             )
                         }
+                    }
+                }
+            }
+            if (contact.customRingtone != null) {
+                item {
+                    DetailSection(title = "Ringtone") {
+                        val context = LocalContext.current
+                        val ringtoneUri = contact.customRingtone.toUri()
+                        val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
+                        val ringtoneTitle = ringtone?.getTitle(context) ?: "Unknown Ringtone"
+                        
+                        DetailItem(
+                            icon = Icons.Default.PhoneInTalk,
+                            value = ringtoneTitle,
+                            type = null
+                        )
                     }
                 }
             }

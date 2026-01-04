@@ -119,6 +119,7 @@ fun ContactsMainScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AssignToGroupDialog(
     groups: List<Group>,
@@ -168,6 +169,7 @@ private fun AssignToGroupDialog(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContactList(
     modifier: Modifier = Modifier,
