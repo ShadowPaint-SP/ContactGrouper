@@ -7,6 +7,13 @@ data class EffectiveGroupMembership(
 
 object RingtoneResolution {
 
+    fun resolvePrimaryMembershipId(memberships: List<GroupMembership>): Int? {
+        return memberships
+            .sortedByDescending { it.assignedAt }
+            .firstOrNull()
+            ?.groupId
+    }
+
     fun resolveWinningMembershipId(
         memberships: List<GroupMembership>,
         hasRingtone: (groupId: Int) -> Boolean
@@ -24,7 +31,10 @@ object RingtoneResolution {
         val winnerGroupId = resolveWinningMembershipId(memberships) { groupId ->
             groupsById[groupId]?.ringtoneUri != null
         } ?: return null
-        val winner = memberships.firstOrNull { it.groupId == winnerGroupId } ?: return null
+        val winner = memberships
+            .sortedByDescending { it.assignedAt }
+            .firstOrNull { it.groupId == winnerGroupId }
+            ?: return null
 
         val winnerGroup = groupsById[winner.groupId] ?: return null
         return EffectiveGroupMembership(

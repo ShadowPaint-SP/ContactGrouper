@@ -9,6 +9,7 @@ import kotlin.random.Random
 class RoomGroupsRepository(
     private val database: GroupDatabase,
     private val ringtoneGateway: ContactRingtoneGateway,
+    private val deviceGroupWriteGateway: DeviceGroupWriteGateway,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) : GroupsRepository {
 
@@ -32,31 +33,43 @@ class RoomGroupsRepository(
     }
 
     override suspend fun assignContactsToGroups(groupIds: List<Int>, contactIds: List<Long>) {
-        val targetGroups = groupIds
+        val originalTargetGroups = groupIds
             .distinct()
             .mapNotNull { database.groupDao.getGroupById(it) }
             .filter { it.isMembershipEditable }
-        if (targetGroups.isEmpty() || contactIds.isEmpty()) {
+        if (originalTargetGroups.isEmpty() || contactIds.isEmpty()) {
             return
         }
 
-        val orderedGroupIds = targetGroups.map { it.id }
+        val targetGroups = originalTargetGroups.map { group ->
+            ensureMirrorForLocalGroup(group, contactIds)
+        }
+        val orderedGroups = targetGroups
         val affectedContacts = mutableSetOf<Long>()
 
         database.withTransaction {
             var timestamp = clock()
             contactIds.distinct().forEach { contactId ->
-                orderedGroupIds.forEach { groupId ->
+                orderedGroups.forEach { group ->
                     database.membershipDao.upsertMembership(
                         GroupMembership(
-                            groupId = groupId,
+                            groupId = group.id,
                             contactId = contactId,
                             assignedAt = timestamp++,
-                            source = GroupSyncSource.LOCAL
+                            source = group.syncSource
                         )
                     )
                     affectedContacts += contactId
                 }
+            }
+        }
+
+        targetGroups.forEach { group ->
+            if (group.deviceGroupId == null) {
+                return@forEach
+            }
+            contactIds.distinct().forEach { contactId ->
+                deviceGroupWriteGateway.addContactToGroup(contactId, group)
             }
         }
 
@@ -70,6 +83,9 @@ class RoomGroupsRepository(
         }
 
         database.membershipDao.deleteMembership(groupId, contactId)
+        group.deviceGroupId?.let { deviceGroupId ->
+            deviceGroupWriteGateway.removeContactFromGroup(contactId, deviceGroupId)
+        }
         refreshRingtones(setOf(contactId))
     }
 
@@ -96,6 +112,9 @@ class RoomGroupsRepository(
             .toSet()
 
         database.groupDao.deleteGroup(group)
+        group.deviceGroupId?.let { deviceGroupId ->
+            deviceGroupWriteGateway.deleteGroup(deviceGroupId)
+        }
         refreshRingtones(affectedContacts)
     }
 
@@ -105,11 +124,19 @@ class RoomGroupsRepository(
         database.withTransaction {
             val groupDao = database.groupDao
             val membershipDao = database.membershipDao
+            val mirroredLocalDeviceGroupIds = groupDao
+                .getGroupsBySource(GroupSyncSource.LOCAL)
+                .mapNotNull { it.deviceGroupId }
+                .toSet()
+            val importableSnapshotGroups = snapshot.groups
+                .filter { it.deviceGroupId !in mirroredLocalDeviceGroupIds }
+            val importableSnapshotMemberships = snapshot.memberships
+                .filter { it.deviceGroupId !in mirroredLocalDeviceGroupIds }
             val existingDeviceGroups = groupDao.getGroupsBySource(GroupSyncSource.DEVICE)
             val existingDeviceGroupsByDeviceId = existingDeviceGroups.associateBy { it.deviceGroupId }
 
             val upsertedGroupsByDeviceId = mutableMapOf<Long, Group>()
-            snapshot.groups.forEach { deviceGroup ->
+            importableSnapshotGroups.forEach { deviceGroup ->
                 val existingGroup = existingDeviceGroupsByDeviceId[deviceGroup.deviceGroupId]
                 if (existingGroup == null) {
                     val insertedId = groupDao.insertGroup(
@@ -145,7 +172,7 @@ class RoomGroupsRepository(
                 }
             }
 
-            val snapshotDeviceIds = snapshot.groups.map { it.deviceGroupId }.toSet()
+            val snapshotDeviceIds = importableSnapshotGroups.map { it.deviceGroupId }.toSet()
             existingDeviceGroups
                 .filter { it.deviceGroupId !in snapshotDeviceIds }
                 .forEach { staleGroup ->
@@ -155,14 +182,14 @@ class RoomGroupsRepository(
 
             val existingDeviceMemberships = membershipDao.getMembershipsBySource(GroupSyncSource.DEVICE)
             val existingDeviceMembershipKeys = existingDeviceMemberships.map { it.groupId to it.contactId }.toSet()
-            val incomingMemberships = snapshot.memberships.mapNotNull { membership ->
+            val incomingMemberships = importableSnapshotMemberships.mapNotNull { membership ->
                 val group = upsertedGroupsByDeviceId[membership.deviceGroupId] ?: return@mapNotNull null
                 group.id to membership.contactId
             }.toSet()
 
             val membershipsByContact = membershipDao.getAllMemberships().groupBy { it.contactId }
             val existingDeviceMembershipsByContact = existingDeviceMemberships.groupBy { it.contactId }
-            val incomingByContact = snapshot.memberships
+            val incomingByContact = importableSnapshotMemberships
                 .groupBy { it.contactId }
                 .mapValues { (_, memberships) ->
                     memberships.distinctBy { it.deviceGroupId }.sortedBy { it.deviceGroupId }
@@ -282,5 +309,28 @@ class RoomGroupsRepository(
         val green = ((deviceGroupId * 97) % 180 + 50).toInt()
         val blue = ((deviceGroupId * 193) % 180 + 50).toInt()
         return Color(red, green, blue, 180)
+    }
+
+    private suspend fun ensureMirrorForLocalGroup(group: Group, contactIds: List<Long>): Group {
+        if (group.syncSource != GroupSyncSource.LOCAL || group.deviceGroupId != null) {
+            return group
+        }
+
+        var account: ContactAccount? = null
+        for (contactId in contactIds) {
+            account = deviceGroupWriteGateway.findAccountForContact(contactId)
+            if (account != null) {
+                break
+            }
+        }
+        val deviceGroupId = deviceGroupWriteGateway.ensureGroup(group.name, account) ?: return group
+        val mirroredGroup = group.copy(
+            deviceGroupId = deviceGroupId,
+            accountName = account?.accountName,
+            accountType = account?.accountType,
+            dataSet = account?.dataSet
+        )
+        database.groupDao.updateGroup(mirroredGroup)
+        return mirroredGroup
     }
 }

@@ -29,5 +29,5 @@ data class Group(
         get() = syncSource == GroupSyncSource.DEVICE
 
     val isMembershipEditable: Boolean
-        get() = syncSource == GroupSyncSource.LOCAL
+        get() = syncSource == GroupSyncSource.LOCAL || !isReadOnly
 }

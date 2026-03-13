@@ -49,6 +49,7 @@ import de.drvlabs.contactgrouper.contacts.ContactsViewModel
 import de.drvlabs.contactgrouper.groups.AddGroupScreen
 import de.drvlabs.contactgrouper.groups.AndroidContactRingtoneGateway
 import de.drvlabs.contactgrouper.groups.ContactsContractDeviceGroupSource
+import de.drvlabs.contactgrouper.groups.ContactsContractDeviceGroupWriteGateway
 import de.drvlabs.contactgrouper.groups.DeviceGroupSyncManager
 import de.drvlabs.contactgrouper.groups.GroupDatabase
 import de.drvlabs.contactgrouper.groups.GroupDetailScreen
@@ -69,7 +70,8 @@ class MainActivity : ComponentActivity() {
     private val repository by lazy {
         RoomGroupsRepository(
             database = db,
-            ringtoneGateway = AndroidContactRingtoneGateway(contentResolver)
+            ringtoneGateway = AndroidContactRingtoneGateway(contentResolver),
+            deviceGroupWriteGateway = ContactsContractDeviceGroupWriteGateway(contentResolver)
         )
     }
 
