@@ -37,7 +37,8 @@ data class Address(
  * @property emails A list of all email addresses for the contact.
  * @property addresses A list of all postal addresses for the contact.
  *
- * @property groupId Internal group ID.
+ * @property groupIds Internal group IDs sorted by latest membership first.
+ * @property effectiveRingtoneGroupId Group ID currently controlling the ringtone.
  */
 data class Contact(
     // Core Identifiers
@@ -57,6 +58,7 @@ data class Contact(
     // Other Fields
     val nickname: String? = null,
 
-    // Your app-specific field
-    var groupId: Int? = null
+    // App-specific fields
+    val groupIds: List<Int> = emptyList(),
+    val effectiveRingtoneGroupId: Int? = null
 )

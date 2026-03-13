@@ -7,7 +7,9 @@ import android.os.Looper
 import android.provider.ContactsContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.drvlabs.contactgrouper.groups.GroupDao
+import de.drvlabs.contactgrouper.groups.GroupMembership
+import de.drvlabs.contactgrouper.groups.GroupsRepository
+import de.drvlabs.contactgrouper.groups.RingtoneResolution
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,75 +20,67 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
 class ContactsViewModel(
     private val contentResolver: ContentResolver,
-    groupDao: GroupDao
+    private val repository: GroupsRepository
 ) : ViewModel() {
-    private val _state = MutableStateFlow(ContactState())
+    private val mutableState = MutableStateFlow(ContactState())
+    private val rawContacts = MutableStateFlow<List<Contact>>(emptyList())
+    private val groups = repository.observeGroups()
+    private val memberships = repository.observeMemberships()
 
-    // 1. Updated StateFlow to use the new DetailedContact class
-    private val _rawContacts = MutableStateFlow<List<Contact>>(emptyList())
     val contacts: StateFlow<List<Contact>> = combine(
-        _rawContacts,
-        groupDao.getAllGroups()
-    ) { contacts, groups ->
-        // Create a map of [Contact ID] -> [Group ID] for efficient lookup.
-        // The key is a Long to match the contact ID type.
-        // IMPORTANT: Each contact can only be in ONE group. If a contact appears in multiple groups,
-        // the FIRST group wins. This ensures data consistency.
-        val contactToGroupMap = mutableMapOf<Long, Int>()
-        groups.forEach { group ->
-            group.contactIds.forEach { contactId ->
-                // Only add if not already assigned to another group
-                if (!contactToGroupMap.containsKey(contactId)) {
-                    contactToGroupMap[contactId] = group.id
-                }
-            }
-        }
+        rawContacts,
+        groups,
+        memberships
+    ) { contacts, groups, memberships ->
+        val groupsById = groups.associateBy { it.id }
+        val membershipsByContact = memberships.groupBy { it.contactId }
 
-        // Map the groupId to each contact. Using .copy() ensures immutability.
         contacts.map { contact ->
-            contact.copy(groupId = contactToGroupMap[contact.id])
+            val contactMemberships = membershipsByContact[contact.id].orEmpty()
+            val orderedGroupIds = contactMemberships
+                .sortedByDescending(GroupMembership::assignedAt)
+                .map(GroupMembership::groupId)
+                .distinct()
+            val winningMembership =
+                RingtoneResolution.resolveWinningMembership(groupsById, contactMemberships)
+
+            contact.copy(
+                groupIds = orderedGroupIds,
+                effectiveRingtoneGroupId = winningMembership?.group?.id
+            )
         }
     }.stateIn(
         viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
+        SharingStarted.WhileSubscribed(5_000),
         emptyList()
     )
 
-    val state = combine(_state, contacts) {state, contacts ->
-        state.copy(
-            contacts = contacts
+    val state = combine(mutableState, contacts) { currentState, contacts ->
+        currentState.copy(
+            contacts = contacts,
+            selectedContact = currentState.selectedContact?.let { selected ->
+                contacts.find { it.id == selected.id }
+            }
         )
     }.stateIn(
         viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
+        SharingStarted.WhileSubscribed(5_000),
         ContactState()
     )
 
     fun onEvent(event: ContactEvent) {
         when (event) {
             is ContactEvent.SetSelectContact -> {
-                _state.update {
-                    it.copy(
-                        selectedContact = event.contact
-                    )
+                mutableState.update {
+                    it.copy(selectedContact = event.contact)
                 }
             }
-            is ContactEvent.SetRingtoneUri -> TODO()
-            is ContactEvent.ClearContactGroup -> {
-                _state.update { state ->
-                    state.selectedContact?.let { contact ->
-                        if (contact.id == event.contactId) {
-                            // Update the selected contact to remove the group assignment
-                            state.copy(selectedContact = contact.copy(groupId = null))
-                        } else {
-                            state
-                        }
-                    } ?: state
-                }
-            }
+
+            is ContactEvent.SetRingtoneUri -> Unit
+
+            is ContactEvent.ClearContactGroup -> Unit
         }
     }
 
@@ -101,7 +95,7 @@ class ContactsViewModel(
         loadContacts()
         contentResolver.registerContentObserver(
             ContactsContract.Contacts.CONTENT_URI,
-            true, // Notify descendants of this URI as well
+            true,
             contactsObserver
         )
     }
@@ -111,34 +105,23 @@ class ContactsViewModel(
         contentResolver.unregisterContentObserver(contactsObserver)
     }
 
-    /**
-     * Kicks off the contact loading process on a background thread.
-     */
     private fun loadContacts() {
         viewModelScope.launch {
-            // Perform heavy cursor operations on the IO dispatcher to avoid blocking the UI.
             val contactsList = withContext(Dispatchers.IO) {
                 fetchDetailedContacts()
             }
-            _rawContacts.value = contactsList
+            rawContacts.value = contactsList
         }
     }
 
-    /**
-     * Fetches a complete list of contacts with all their detailed data from the ContentResolver.
-     * This function is designed to be run on a background thread.
-     */
     private fun fetchDetailedContacts(): List<Contact> {
-        // Use a map to build contacts. This is efficient for adding details from different data rows.
         val contactMap = mutableMapOf<Long, Contact>()
 
-        // === Step 1: Query basic info from the main Contacts table to get a unique list of people ===
         val contactProjection = arrayOf(
             ContactsContract.Contacts._ID,
             ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
             ContactsContract.Contacts.PHOTO_URI,
             ContactsContract.Contacts.PHOTO_THUMBNAIL_URI,
-            ContactsContract.Contacts.STARRED,
             ContactsContract.Contacts.CUSTOM_RINGTONE
         )
 
@@ -147,16 +130,16 @@ class ContactsViewModel(
             contactProjection,
             null,
             null,
-            // This sort order ensures correct, case-insensitive alphabetical sorting.
             "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC"
         )?.use { cursor ->
-            val idIndex = cursor.getColumnIndex(ContactsContract.Contacts._ID)
+            val idIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID)
             val nameIndex =
-                cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
-            val photoIndex = cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_URI)
+                cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
+            val photoIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_URI)
             val thumbnailIndex =
-                cursor.getColumnIndex(ContactsContract.Contacts.PHOTO_THUMBNAIL_URI)
-            val ringtoneIndex = cursor.getColumnIndex(ContactsContract.Contacts.CUSTOM_RINGTONE)
+                cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_THUMBNAIL_URI)
+            val ringtoneIndex =
+                cursor.getColumnIndexOrThrow(ContactsContract.Contacts.CUSTOM_RINGTONE)
 
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idIndex)
@@ -170,74 +153,64 @@ class ContactsViewModel(
             }
         }
 
-        if (contactMap.isEmpty()) return emptyList()
+        if (contactMap.isEmpty()) {
+            return emptyList()
+        }
 
-        // === Step 2: Query the Data table to get all details (phone, email, etc.) for all contacts at once ===
         val dataProjection = arrayOf(
             ContactsContract.Data.CONTACT_ID,
             ContactsContract.Data.MIMETYPE,
-            ContactsContract.Data.DATA1, // Generic column for number, email, note, etc.
-            ContactsContract.Data.DATA2, // Generic column for type (e.g., home, work)
-            ContactsContract.Data.DATA4, // For Organization Title
-            // Address-specific columns
-            ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS,
+            ContactsContract.Data.DATA1,
+            ContactsContract.Data.DATA2,
+            ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS
         )
 
         contentResolver.query(
             ContactsContract.Data.CONTENT_URI,
             dataProjection,
-            // A WHERE clause to only get data for the contacts we found in Step 1.
             "${ContactsContract.Data.CONTACT_ID} IN (${contactMap.keys.joinToString(",")})",
             null,
             null
         )?.use { cursor ->
-            // Column indices for faster access in the loop
-            val contactIdIndex = cursor.getColumnIndex(ContactsContract.Data.CONTACT_ID)
-            val mimeTypeIndex = cursor.getColumnIndex(ContactsContract.Data.MIMETYPE)
-            val data1Index = cursor.getColumnIndex(ContactsContract.Data.DATA1)
-            val data2Index = cursor.getColumnIndex(ContactsContract.Data.DATA2)
-            val formattedAddressIndex =
-                cursor.getColumnIndex(ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS)
+            val contactIdIndex = cursor.getColumnIndexOrThrow(ContactsContract.Data.CONTACT_ID)
+            val mimeTypeIndex = cursor.getColumnIndexOrThrow(ContactsContract.Data.MIMETYPE)
+            val data1Index = cursor.getColumnIndexOrThrow(ContactsContract.Data.DATA1)
+            val data2Index = cursor.getColumnIndexOrThrow(ContactsContract.Data.DATA2)
+            val formattedAddressIndex = cursor.getColumnIndexOrThrow(
+                ContactsContract.CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS
+            )
 
             while (cursor.moveToNext()) {
                 val contactId = cursor.getLong(contactIdIndex)
-                val contact = contactMap[contactId]
-                    ?: continue // Skip if contact somehow isn't in our map
-                val mimeType = cursor.getString(mimeTypeIndex)
-
-                when (mimeType) {
+                val contact = contactMap[contactId] ?: continue
+                when (cursor.getString(mimeTypeIndex)) {
                     ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE -> {
                         val number = cursor.getString(data1Index) ?: continue
                         val typeId = cursor.getInt(data2Index)
-                        val updatedPhones =
-                            contact.phoneNumbers + ContactDataItem(number, typeId)
-                        contactMap[contactId] = contact.copy(phoneNumbers = updatedPhones)
+                        contactMap[contactId] = contact.copy(
+                            phoneNumbers = contact.phoneNumbers + ContactDataItem(number, typeId)
+                        )
                     }
 
                     ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE -> {
                         val email = cursor.getString(data1Index) ?: continue
                         val typeId = cursor.getInt(data2Index)
-                        val updatedEmails = contact.emails + ContactDataItem(email, typeId)
-                        contactMap[contactId] = contact.copy(emails = updatedEmails)
+                        contactMap[contactId] = contact.copy(
+                            emails = contact.emails + ContactDataItem(email, typeId)
+                        )
                     }
 
                     ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE -> {
+                        val address = cursor.getString(formattedAddressIndex) ?: continue
                         val typeId = cursor.getInt(data2Index)
-                        val address = Address(
-                            formattedAddress = cursor.getString(formattedAddressIndex) ?: "",
-                            typeId
+                        contactMap[contactId] = contact.copy(
+                            addresses = contact.addresses + Address(address, typeId)
                         )
-                        val updatedAddresses = contact.addresses + address
-                        contactMap[contactId] = contact.copy(addresses = updatedAddresses)
-                    }
-
-                    ContactsContract.CommonDataKinds.Nickname.CONTENT_ITEM_TYPE -> {
-                        contactMap[contactId] =
-                            contact.copy(nickname = cursor.getString(data1Index))
                     }
                 }
             }
         }
+
         return contactMap.values.toList()
     }
 }

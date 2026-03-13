@@ -22,7 +22,7 @@ sealed interface ContactEvent {
      * Updates the selectedContact to reflect the group change.
      * @param contactId The ID of the contact whose group was removed.
      */
-    data class ClearContactGroup(val contactId: Long) : ContactEvent
+    data class ClearContactGroup(val contactId: Long, val groupId: Int) : ContactEvent
 
 
 }

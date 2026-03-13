@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -38,16 +39,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import de.drvlabs.contactgrouper.groups.Group
 import de.drvlabs.contactgrouper.groups.GroupEvent
 import de.drvlabs.contactgrouper.groups.GroupState
-import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,15 +58,16 @@ fun ContactDetailScreen(
     onGroupEvent: (GroupEvent) -> Unit,
     onContactEvent: (ContactEvent) -> Unit
 ) {
-    val contact = contactState.selectedContact!!//TODO make better
+    val contact = contactState.selectedContact ?: return
+    val groupsById = groupState.groups.associateBy { it.id }
+    val contactGroups = contact.groupIds.mapNotNull(groupsById::get)
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
                     }
                 }
@@ -79,7 +80,6 @@ fun ContactDetailScreen(
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp)
         ) {
-
             item {
                 ContactHeader(contact)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -124,38 +124,35 @@ fun ContactDetailScreen(
                     }
                 }
             }
-            if (contact.customRingtone != null) {
-                item {
-                    DetailSection(title = "Ringtone") {
-                        val context = LocalContext.current
-                        val ringtoneUri = contact.customRingtone.toUri()
-                        val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
-                        val ringtoneTitle = ringtone?.getTitle(context) ?: "Unknown Ringtone"
-                        
-                        DetailItem(
-                            icon = Icons.Default.PhoneInTalk,
-                            value = ringtoneTitle,
-                            type = null
-                        )
-                    }
+
+            item {
+                DetailSection(title = "Ringtone") {
+                    val context = LocalContext.current
+                    val title = contact.customRingtone?.let { ringtoneValue ->
+                        val ringtone = RingtoneManager.getRingtone(context, ringtoneValue.toUri())
+                        ringtone?.getTitle(context)
+                    } ?: "Default"
+
+                    DetailItem(
+                        icon = Icons.Default.PhoneInTalk,
+                        value = title ?: "Default",
+                        type = null
+                    )
                 }
             }
-            if (contact.groupId != null){
-                item {
-                    DetailSection(title = "Group") {
-                        val group = groupState.groups.find { it.id == contact.groupId }!!//TODO This is unsafe
-                        val context = LocalContext.current
-                        val ringtone = RingtoneManager.getRingtone( context,group.ringtoneUri)
-                        val title = ringtone.getTitle(context)
 
-                        DetailGroupItem(
-                            icon = Icons.Default.Groups,
-                            onGroupEvent = onGroupEvent,
-                            onContactEvent = onContactEvent,
-                            contact = contact,
-                            group = group,
-                            type = "Ringtone: $title"
-                        )
+            if (contactGroups.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Groups") {
+                        contactGroups.forEach { group ->
+                            DetailGroupItem(
+                                contact = contact,
+                                group = group,
+                                isEffective = contact.effectiveRingtoneGroupId == group.id,
+                                onGroupEvent = onGroupEvent,
+                                onContactEvent = onContactEvent
+                            )
+                        }
                     }
                 }
             }
@@ -192,12 +189,10 @@ private fun ContactHeader(contact: Contact) {
                 )
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = contact.displayName,
-                style = MaterialTheme.typography.headlineMedium
-            )
-        }
+        Text(
+            text = contact.displayName,
+            style = MaterialTheme.typography.headlineMedium
+        )
     }
 }
 
@@ -223,7 +218,7 @@ private fun DetailSection(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
-private fun DetailItem(icon: ImageVector, value: String, type: String?) {
+private fun DetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, type: String?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
@@ -246,53 +241,59 @@ private fun DetailItem(icon: ImageVector, value: String, type: String?) {
 }
 
 @Composable
-private fun DetailGroupItem(icon: ImageVector, contact: Contact, group: Group, type: String?,
-                            onGroupEvent: (GroupEvent) -> Unit,
-                            onContactEvent: (ContactEvent) -> Unit) {
+private fun DetailGroupItem(
+    contact: Contact,
+    group: Group,
+    isEffective: Boolean,
+    onGroupEvent: (GroupEvent) -> Unit,
+    onContactEvent: (ContactEvent) -> Unit
+) {
+    val subtitle = buildString {
+        if (isEffective) {
+            append("Controls ringtone")
+        }
+        if (group.isDeviceBacked) {
+            if (isNotEmpty()) append(" • ")
+            append("Synced from device")
+        }
+    }
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            imageVector = icon,
+            imageVector = Icons.Default.Groups,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.size(24.dp)
         )
         Spacer(Modifier.width(16.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = group.name, style = MaterialTheme.typography.bodyLarge)
-            type?.let {
+            if (subtitle.isNotBlank()) {
                 Text(
-                    text = it,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.CenterEnd
-        ){
+        if (group.isMembershipEditable) {
             IconButton(
-                onClick = { 
+                onClick = {
                     onGroupEvent(GroupEvent.RemoveGroupMember(contact, group))
-                    onContactEvent(ContactEvent.ClearContactGroup(contact.id))
-                },
-                modifier = Modifier.padding(start = 16.dp)
+                    onContactEvent(ContactEvent.ClearContactGroup(contact.id, group.id))
+                }
             ) {
-                Icon(Icons.Filled.DeleteForever, contentDescription = "Remove Group")
+                Icon(Icons.Default.DeleteForever, contentDescription = "Remove from group")
             }
         }
     }
 }
+
 private fun getPhoneTypeLabel(type: Int): String {
     return when (type) {
         ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> "Home"
         ContactsContract.CommonDataKinds.Phone.TYPE_WORK -> "Work"
         ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> "Mobile"
-        ContactsContract.CommonDataKinds.Phone.TYPE_FAX_WORK -> "Work Fax"
-        ContactsContract.CommonDataKinds.Phone.TYPE_FAX_HOME -> "Home Fax"
-        ContactsContract.CommonDataKinds.Phone.TYPE_OTHER -> "Other"
         ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> "Main"
         else -> "Other"
     }
@@ -303,7 +304,6 @@ private fun getEmailTypeLabel(type: Int): String {
         ContactsContract.CommonDataKinds.Email.TYPE_HOME -> "Home"
         ContactsContract.CommonDataKinds.Email.TYPE_WORK -> "Work"
         ContactsContract.CommonDataKinds.Email.TYPE_MOBILE -> "Mobile"
-        ContactsContract.CommonDataKinds.Email.TYPE_OTHER -> "Other"
         else -> "Other"
     }
 }
@@ -312,7 +312,6 @@ private fun getAddressTypeLabel(type: Int): String {
     return when (type) {
         ContactsContract.CommonDataKinds.StructuredPostal.TYPE_HOME -> "Home"
         ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK -> "Work"
-        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_OTHER -> "Other"
         else -> "Other"
     }
 }

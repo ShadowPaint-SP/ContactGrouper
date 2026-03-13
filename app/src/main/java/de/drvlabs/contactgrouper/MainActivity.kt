@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,14 +44,18 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.room.Room
 import de.drvlabs.contactgrouper.contacts.ContactDetailScreen
-import de.drvlabs.contactgrouper.groups.AddGroupScreen
-import de.drvlabs.contactgrouper.groups.GroupDatabase
-import de.drvlabs.contactgrouper.ui.theme.AppTheme
 import de.drvlabs.contactgrouper.contacts.ContactsMainScreen
+import de.drvlabs.contactgrouper.contacts.ContactsViewModel
+import de.drvlabs.contactgrouper.groups.AddGroupScreen
+import de.drvlabs.contactgrouper.groups.AndroidContactRingtoneGateway
+import de.drvlabs.contactgrouper.groups.ContactsContractDeviceGroupSource
+import de.drvlabs.contactgrouper.groups.DeviceGroupSyncManager
+import de.drvlabs.contactgrouper.groups.GroupDatabase
 import de.drvlabs.contactgrouper.groups.GroupDetailScreen
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
-import de.drvlabs.contactgrouper.contacts.ContactsViewModel
+import de.drvlabs.contactgrouper.groups.RoomGroupsRepository
 import de.drvlabs.contactgrouper.groups.GroupViewModel
+import de.drvlabs.contactgrouper.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
     private val db by lazy {
@@ -58,14 +63,30 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             GroupDatabase::class.java,
             "groups.db"
-        ).build()
+        ).addMigrations(GroupDatabase.MIGRATION_1_2).build()
     }
+
+    private val repository by lazy {
+        RoomGroupsRepository(
+            database = db,
+            ringtoneGateway = AndroidContactRingtoneGateway(contentResolver)
+        )
+    }
+
+    private val deviceGroupSyncManager by lazy {
+        DeviceGroupSyncManager(
+            contentResolver = contentResolver,
+            source = ContactsContractDeviceGroupSource(contentResolver),
+            repository = repository
+        )
+    }
+
     private val contactViewModel by viewModels<ContactsViewModel>(
         factoryProducer = {
             object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     @Suppress("UNCHECKED_CAST")
-                    return ContactsViewModel(contentResolver, db.dao) as T
+                    return ContactsViewModel(contentResolver, repository) as T
                 }
             }
         }
@@ -76,7 +97,7 @@ class MainActivity : ComponentActivity() {
             object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     @Suppress("UNCHECKED_CAST")
-                    return GroupViewModel(db.dao, applicationContext) as T
+                    return GroupViewModel(repository) as T
                 }
             }
         }
@@ -131,6 +152,13 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     if (hasPermission) {
+                        DisposableEffect(Unit) {
+                            deviceGroupSyncManager.start()
+                            onDispose {
+                                deviceGroupSyncManager.stop()
+                            }
+                        }
+
                         val groupState by groupViewModel.state.collectAsState()
                         val contactState by contactViewModel.state.collectAsState()
                         NavHost(

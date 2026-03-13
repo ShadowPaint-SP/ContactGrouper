@@ -23,11 +23,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
@@ -58,14 +58,15 @@ import androidx.navigation.NavController
 import de.drvlabs.contactgrouper.contacts.ContactList
 import de.drvlabs.contactgrouper.contacts.ContactState
 
-
 @Composable
-fun GroupsMainScreen(navController: NavController,
-                     contactState: ContactState,
-                     groupState: GroupState,
-                     onEvent: (GroupEvent) -> Unit
+fun GroupsMainScreen(
+    navController: NavController,
+    contactState: ContactState,
+    groupState: GroupState,
+    onEvent: (GroupEvent) -> Unit
 ) {
     val allContacts = contactState.contacts
+
     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         if (groupState.groups.isEmpty()) {
             Box(
@@ -81,7 +82,7 @@ fun GroupsMainScreen(navController: NavController,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(groupState.groups) { group ->
-                    val memberCount = allContacts.count { it.groupId == group.id }
+                    val memberCount = allContacts.count { group.id in it.groupIds }
                     GroupCard(group = group, memberCount = memberCount) {
                         onEvent(GroupEvent.SetSelectedGroup(group))
                         navController.navigate("GroupDetails")
@@ -89,6 +90,7 @@ fun GroupsMainScreen(navController: NavController,
                 }
             }
         }
+
         FloatingActionButton(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -106,20 +108,27 @@ fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = group.color),
-        //elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = group.color)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = group.name, style = MaterialTheme.typography.titleLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = group.name, style = MaterialTheme.typography.titleLarge)
+                if (group.isDeviceBacked) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Synced from device",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = "$memberCount members", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
-/**
- * A screen for adding a new contact group.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddGroupScreen(
@@ -135,13 +144,12 @@ fun AddGroupScreen(
         onResult = { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 @Suppress("DEPRECATION")
-                val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                val uri =
+                    result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
                 onEvent(GroupEvent.SetRingtoneUri(uri))
             }
         }
     )
-
-    val ringtonePickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
 
     Scaffold(
         topBar = {
@@ -151,6 +159,7 @@ fun AddGroupScreen(
                     IconButton(onClick = {
                         navController.popBackStack()
                         onEvent(GroupEvent.SetGroupName(""))
+                        onEvent(GroupEvent.SetRingtoneUri(null))
                     }) {
                         Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
                     }
@@ -161,13 +170,17 @@ fun AddGroupScreen(
                             if (state.name.isNotBlank()) {
                                 onEvent(GroupEvent.SaveGroup)
                                 navController.popBackStack()
-                                onEvent(GroupEvent.SetGroupName(""))
                             } else {
                                 showNameError = true
                             }
                         },
-                        modifier = Modifier.padding( end = 24.dp)) {
-                        Icon(Icons.Default.Save, contentDescription = "Save Group", modifier = Modifier.padding(end = 8.dp))
+                        modifier = Modifier.padding(end = 24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = "Save Group",
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
                         Text("Save")
                     }
                 }
@@ -185,7 +198,9 @@ fun AddGroupScreen(
                 value = state.name,
                 onValueChange = {
                     onEvent(GroupEvent.SetGroupName(it))
-                    if (it.isNotBlank()) showNameError = false
+                    if (it.isNotBlank()) {
+                        showNameError = false
+                    }
                 },
                 label = { Text("Group Name") },
                 modifier = Modifier.fillMaxWidth(),
@@ -196,7 +211,11 @@ fun AddGroupScreen(
                 Text("Group name cannot be empty.", color = MaterialTheme.colorScheme.error)
             }
 
-            Button(onClick = { ringtonePickerLauncher.launch(ringtonePickerIntent) }) {
+            Button(
+                onClick = {
+                    ringtonePickerLauncher.launch(Intent(RingtoneManager.ACTION_RINGTONE_PICKER))
+                }
+            ) {
                 Text(if (state.ringtoneUri == null) "Assign Ringtone" else "Change Ringtone")
             }
 
@@ -206,13 +225,9 @@ fun AddGroupScreen(
                 Text("Ringtone selected: $title")
             }
         }
-
     }
 }
 
-/**
- * A screen showing the details of a specific group and its members.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailScreen(
@@ -231,13 +246,12 @@ fun GroupDetailScreen(
         onResult = { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 @Suppress("DEPRECATION")
-                val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                val uri =
+                    result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
                 group?.let { onEvent(GroupEvent.ChangeGroupRingtone(it.id, uri)) }
             }
         }
     )
-
-    val ringtonePickerIntent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
 
     Scaffold(
         topBar = {
@@ -261,11 +275,20 @@ fun GroupDetailScreen(
                                 text = { Text("Change Ringtone") },
                                 onClick = {
                                     showMenu = false
-                                    ringtonePickerLauncher.launch(ringtonePickerIntent)
+                                    ringtonePickerLauncher.launch(Intent(RingtoneManager.ACTION_RINGTONE_PICKER))
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Delete Group") },
+                                text = {
+                                    Text(
+                                        if (group?.isDeviceBacked == true) {
+                                            "Delete Disabled (Synced Group)"
+                                        } else {
+                                            "Delete Group"
+                                        }
+                                    )
+                                },
+                                enabled = group?.isMembershipEditable == true,
                                 onClick = {
                                     showMenu = false
                                     group?.let { onEvent(GroupEvent.DeleteGroup(it)) }
@@ -290,7 +313,7 @@ fun GroupDetailScreen(
             return@Scaffold
         }
 
-        val groupContacts = allContacts.filter { it.groupId == group.id }
+        val groupContacts = allContacts.filter { group.id in it.groupIds }
 
         Column(
             modifier = Modifier
@@ -298,7 +321,6 @@ fun GroupDetailScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // Group Header Section - Visual Highlight
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -306,11 +328,12 @@ fun GroupDetailScreen(
                 colors = CardDefaults.cardColors(containerColor = group.color)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(100.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
                 ) {
                     Column(
-                        modifier = Modifier
-                            .padding(20.dp)
+                        modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
                             text = group.name,
@@ -323,14 +346,24 @@ fun GroupDetailScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (group.isDeviceBacked) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Synced from device contacts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                    // Ringtone Display Section
+
                     Spacer(modifier = Modifier.weight(1f))
+
                     group.ringtoneUri?.let {
                         val ringtone = RingtoneManager.getRingtone(context, it)
                         val title = ringtone.getTitle(context)
                         Row(
-                            modifier = Modifier.fillMaxHeight()
+                            modifier = Modifier
+                                .fillMaxHeight()
                                 .padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -348,12 +381,9 @@ fun GroupDetailScreen(
                             )
                         }
                     }
-
                 }
-
             }
 
-            // Member List Header
             Text(
                 text = "Members",
                 style = MaterialTheme.typography.titleMedium,
@@ -361,17 +391,10 @@ fun GroupDetailScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // Member List Card
-            Card(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                shape = RoundedCornerShape(16.dp)
-            ) {
+            Card(modifier = Modifier.fillMaxSize()) {
                 if (groupContacts.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -382,7 +405,12 @@ fun GroupDetailScreen(
                         )
                     }
                 } else {
-                    ContactList(contacts = groupContacts, groups = groupState.groups, onContactClick = {return@ContactList}, onContactLongClick = {return@ContactList})
+                    ContactList(
+                        contacts = groupContacts,
+                        groups = groupState.groups,
+                        onContactClick = {},
+                        onContactLongClick = {}
+                    )
                 }
             }
         }
