@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,27 +51,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.core.net.toUri
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import de.drvlabs.contactgrouper.groups.Group
-import de.drvlabs.contactgrouper.groups.GroupEvent
-import de.drvlabs.contactgrouper.groups.GroupState
+import de.drvlabs.contactgrouper.groups.GroupMutationResult
+import de.drvlabs.contactgrouper.groups.GroupsListState
+import de.drvlabs.contactgrouper.groups.isSuccess
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactDetailScreen(
     navController: NavController,
-    contactState: ContactState,
-    groupState: GroupState,
-    onGroupEvent: (GroupEvent) -> Unit,
-    onContactEvent: (ContactEvent) -> Unit
+    contactId: Long,
+    contactState: ContactsListState,
+    groupState: GroupsListState,
+    onAssignGroups: suspend (List<Int>) -> GroupMutationResult,
+    onRemoveGroup: suspend (Int) -> GroupMutationResult
 ) {
-    val contact = contactState.selectedContact ?: return
+    val contact = contactState.contacts.find { it.id == contactId }
     val groupsById = groupState.groups.associateBy { it.id }
-    val contactGroups = contact.groupIds.mapNotNull(groupsById::get)
-    val availableGroups = groupState.groups.filter { it.isMembershipEditable && it.id !in contact.groupIds }
     var showAddGroupDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -82,6 +85,11 @@ fun ContactDetailScreen(
                     }
                 },
                 actions = {
+                    val availableGroups = contact?.let { selected ->
+                        groupState.groups.filter {
+                            it.isMembershipEditable && it.id !in selected.groupIds
+                        }
+                    }.orEmpty()
                     if (availableGroups.isNotEmpty()) {
                         IconButton(onClick = { showAddGroupDialog = true }) {
                             Icon(Icons.Default.GroupAdd, contentDescription = "Add to group")
@@ -91,6 +99,23 @@ fun ContactDetailScreen(
             )
         }
     ) { paddingValues ->
+        if (contact == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Contact not found.")
+            }
+            return@Scaffold
+        }
+
+        val contactGroups = contact.groupIds.mapNotNull(groupsById::get)
+        val availableGroups = groupState.groups.filter {
+            it.isMembershipEditable && it.id !in contact.groupIds
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -163,11 +188,13 @@ fun ContactDetailScreen(
                     DetailSection(title = "Groups") {
                         contactGroups.forEach { group ->
                             DetailGroupItem(
-                                contact = contact,
                                 group = group,
                                 isEffective = contact.effectiveRingtoneGroupId == group.id,
-                                onGroupEvent = onGroupEvent,
-                                onContactEvent = onContactEvent
+                                onRemove = {
+                                    coroutineScope.launch {
+                                        onRemoveGroup(group.id)
+                                    }
+                                }
                             )
                         }
                     }
@@ -183,17 +210,21 @@ fun ContactDetailScreen(
                 }
             }
         }
-    }
 
-    if (showAddGroupDialog) {
-        AddContactToGroupsDialog(
-            groups = availableGroups,
-            onDismiss = { showAddGroupDialog = false },
-            onAssign = { groupIds ->
-                onGroupEvent(GroupEvent.AssignContactsToGroups(groupIds, listOf(contact.id)))
-                showAddGroupDialog = false
-            }
-        )
+        if (showAddGroupDialog) {
+            AddContactToGroupsDialog(
+                groups = availableGroups,
+                onDismiss = { showAddGroupDialog = false },
+                onAssign = { groupIds ->
+                    coroutineScope.launch {
+                        val result = onAssignGroups(groupIds)
+                        if (result.isSuccess) {
+                            showAddGroupDialog = false
+                        }
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -255,7 +286,11 @@ private fun DetailSection(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
-private fun DetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, type: String?) {
+private fun DetailItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    type: String?
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
@@ -279,11 +314,9 @@ private fun DetailItem(icon: androidx.compose.ui.graphics.vector.ImageVector, va
 
 @Composable
 private fun DetailGroupItem(
-    contact: Contact,
     group: Group,
     isEffective: Boolean,
-    onGroupEvent: (GroupEvent) -> Unit,
-    onContactEvent: (ContactEvent) -> Unit
+    onRemove: () -> Unit
 ) {
     val subtitle = buildString {
         if (isEffective) {
@@ -291,7 +324,7 @@ private fun DetailGroupItem(
         }
         if (group.isDeviceBacked) {
             if (isNotEmpty()) append(" • ")
-            append("Synced from device")
+            append("Imported from device contacts")
         }
     }
 
@@ -314,12 +347,7 @@ private fun DetailGroupItem(
             }
         }
         if (group.isMembershipEditable) {
-            IconButton(
-                onClick = {
-                    onGroupEvent(GroupEvent.RemoveGroupMember(contact, group))
-                    onContactEvent(ContactEvent.ClearContactGroup(contact.id, group.id))
-                }
-            ) {
+            IconButton(onClick = onRemove) {
                 Icon(Icons.Default.DeleteForever, contentDescription = "Remove from group")
             }
         }
@@ -354,9 +382,9 @@ private fun AddContactToGroupsDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = group.name)
-                            if (group.isDeviceBacked) {
+                            if (group.deletesFromDevice) {
                                 Text(
-                                    text = "Syncs back to contacts",
+                                    text = "Changes to this group sync to device contacts",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

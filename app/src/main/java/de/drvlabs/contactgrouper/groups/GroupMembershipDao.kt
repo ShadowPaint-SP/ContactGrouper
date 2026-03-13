@@ -35,4 +35,7 @@ interface GroupMembershipDao {
 
     @Query("SELECT * FROM GroupMembership WHERE contactId = :contactId ORDER BY assignedAt DESC")
     suspend fun getMembershipsForContact(contactId: Long): List<GroupMembership>
+
+    @Query("SELECT * FROM GroupMembership WHERE contactId IN (:contactIds) ORDER BY assignedAt DESC")
+    suspend fun getMembershipsForContacts(contactIds: List<Long>): List<GroupMembership>
 }

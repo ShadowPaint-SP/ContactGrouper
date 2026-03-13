@@ -21,16 +21,46 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class Screen(val route: String, val selected: ImageVector, val unselected: ImageVector) {
-    sealed class NavBarScreen(route: String, selected: ImageVector, unselected: ImageVector, val graphRoute: String) : Screen(route, selected, unselected) {
-        object Contacts : NavBarScreen("Contacts", Icons.Filled.Person, Icons.Outlined.Person, "contacts_graph")
-        object Groups : NavBarScreen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups, "groups_graph")
+    sealed class NavBarScreen(
+        route: String,
+        selected: ImageVector,
+        unselected: ImageVector,
+        val graphRoute: String
+    ) : Screen(route, selected, unselected) {
+        data object Contacts : NavBarScreen(
+            "Contacts",
+            Icons.Filled.Person,
+            Icons.Outlined.Person,
+            "contacts_graph"
+        )
+        data object Groups : NavBarScreen(
+            "Groups",
+            Icons.Filled.Groups,
+            Icons.Outlined.Groups,
+            "groups_graph"
+        )
     }
 
-    //object Contacts : Screen("Contacts", Icons.Filled.Person, Icons.Outlined.Person)
-    object ContactDetails : Screen("ContactDetails", Icons.Filled.Person, Icons.Outlined.Person)
-    //object Groups : Screen("Groups", Icons.Filled.Groups, Icons.Outlined.Groups)
-    object AddGroup : Screen("AddGroup", Icons.Filled.Group, Icons.Outlined.Group)
-    object GroupDetails : Screen("GroupDetails", Icons.Filled.Group, Icons.Outlined.Group)
+    data object AddGroup : Screen("AddGroup", Icons.Filled.Group, Icons.Outlined.Group)
+    data object ContactDetails : Screen(
+        "ContactDetails/{contactId}",
+        Icons.Filled.Person,
+        Icons.Outlined.Person
+    ) {
+        const val ARG_CONTACT_ID = "contactId"
+
+        fun createRoute(contactId: Long): String = "ContactDetails/$contactId"
+    }
+
+    data object GroupDetails : Screen(
+        "GroupDetails/{groupId}",
+        Icons.Filled.Group,
+        Icons.Outlined.Group
+    ) {
+        const val ARG_GROUP_ID = "groupId"
+
+        fun createRoute(groupId: Int): String = "GroupDetails/$groupId"
+    }
 }
 
 val navbarItems = listOf(Screen.NavBarScreen.Contacts, Screen.NavBarScreen.Groups)

@@ -12,10 +12,24 @@ data class ContactAccount(
     val dataSet: String?
 )
 
+class ContactAccountLookupCache {
+    internal val accountsByContactId = mutableMapOf<Long, List<ContactAccount>>()
+}
+
 interface DeviceGroupWriteGateway {
-    suspend fun findAccountForContact(contactId: Long): ContactAccount?
+    suspend fun findAccountForContact(
+        contactId: Long,
+        cache: ContactAccountLookupCache? = null
+    ): ContactAccount?
+
     suspend fun ensureGroup(title: String, account: ContactAccount?): Long?
-    suspend fun addContactToGroup(contactId: Long, group: Group): Boolean
+
+    suspend fun addContactToGroup(
+        contactId: Long,
+        group: Group,
+        cache: ContactAccountLookupCache? = null
+    ): Boolean
+
     suspend fun removeContactFromGroup(contactId: Long, deviceGroupId: Long): Boolean
     suspend fun deleteGroup(deviceGroupId: Long): Boolean
 }
@@ -24,8 +38,11 @@ class ContactsContractDeviceGroupWriteGateway(
     private val contentResolver: ContentResolver
 ) : DeviceGroupWriteGateway {
 
-    override suspend fun findAccountForContact(contactId: Long): ContactAccount? {
-        val rawContacts = queryRawContacts(contactId)
+    override suspend fun findAccountForContact(
+        contactId: Long,
+        cache: ContactAccountLookupCache?
+    ): ContactAccount? {
+        val rawContacts = queryRawContacts(contactId, cache)
         return rawContacts
             .sortedWith(
                 compareByDescending<ContactAccount> { !it.accountType.isNullOrBlank() }
@@ -49,19 +66,24 @@ class ContactsContractDeviceGroupWriteGateway(
         return insertedUri?.lastPathSegment?.toLongOrNull()
     }
 
-    override suspend fun addContactToGroup(contactId: Long, group: Group): Boolean {
+    override suspend fun addContactToGroup(
+        contactId: Long,
+        group: Group,
+        cache: ContactAccountLookupCache?
+    ): Boolean {
         val deviceGroupId = group.deviceGroupId ?: return false
         if (membershipExists(contactId, deviceGroupId)) {
             return true
         }
 
-        val candidateRawContact = queryRawContacts(contactId)
+        val rawContacts = queryRawContacts(contactId, cache)
+        val candidateRawContact = rawContacts
             .firstOrNull { rawContact ->
                 rawContact.accountName == group.accountName &&
                     rawContact.accountType == group.accountType &&
                     rawContact.dataSet == group.dataSet
             }
-            ?: queryRawContacts(contactId).firstOrNull()
+            ?: rawContacts.firstOrNull()
             ?: return false
 
         val values = ContentValues().apply {
@@ -121,7 +143,12 @@ class ContactsContractDeviceGroupWriteGateway(
         return rows > 0
     }
 
-    private fun queryRawContacts(contactId: Long): List<ContactAccount> {
+    private fun queryRawContacts(
+        contactId: Long,
+        cache: ContactAccountLookupCache?
+    ): List<ContactAccount> {
+        cache?.accountsByContactId?.get(contactId)?.let { return it }
+
         val accounts = mutableListOf<ContactAccount>()
         contentResolver.query(
             ContactsContract.RawContacts.CONTENT_URI,
@@ -152,6 +179,7 @@ class ContactsContractDeviceGroupWriteGateway(
                 )
             }
         }
+        cache?.accountsByContactId?.put(contactId, accounts)
         return accounts
     }
 

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,11 +44,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,15 +58,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.contacts.ContactList
-import de.drvlabs.contactgrouper.contacts.ContactState
+import de.drvlabs.contactgrouper.contacts.ContactsListState
+import kotlinx.coroutines.launch
 
 @Composable
 fun GroupsMainScreen(
     navController: NavController,
-    contactState: ContactState,
-    groupState: GroupState,
-    onEvent: (GroupEvent) -> Unit
+    contactState: ContactsListState,
+    groupState: GroupsListState
 ) {
     val allContacts = contactState.contacts
 
@@ -73,7 +77,7 @@ fun GroupsMainScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No groups yet. Tap '+' to add one!", fontSize = 18.sp)
+                Text("No groups yet. Tap '+' to add one.", fontSize = 18.sp)
             }
         } else {
             LazyColumn(
@@ -84,8 +88,7 @@ fun GroupsMainScreen(
                 items(groupState.groups) { group ->
                     val memberCount = allContacts.count { group.id in it.groupIds }
                     GroupCard(group = group, memberCount = memberCount) {
-                        onEvent(GroupEvent.SetSelectedGroup(group))
-                        navController.navigate("GroupDetails")
+                        navController.navigate(Screen.GroupDetails.createRoute(group.id))
                     }
                 }
             }
@@ -95,7 +98,7 @@ fun GroupsMainScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 16.dp, end = 24.dp),
-            onClick = { navController.navigate("AddGroup") }
+            onClick = { navController.navigate(Screen.AddGroup.route) }
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Add Group")
         }
@@ -117,7 +120,7 @@ fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Synced from device",
+                        contentDescription = "Imported from device",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -132,12 +135,16 @@ fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddGroupScreen(
-    state: GroupState,
-    onEvent: (GroupEvent) -> Unit,
-    navController: NavController
+    navController: NavController,
+    state: AddGroupState,
+    onNameChange: (String) -> Unit,
+    onRingtoneSelected: (Uri?) -> Unit,
+    onCancel: () -> Unit,
+    onSave: suspend () -> GroupMutationResult
 ) {
     var showNameError by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -146,7 +153,7 @@ fun AddGroupScreen(
                 @Suppress("DEPRECATION")
                 val uri =
                     result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                onEvent(GroupEvent.SetRingtoneUri(uri))
+                onRingtoneSelected(uri)
             }
         }
     )
@@ -156,22 +163,23 @@ fun AddGroupScreen(
             TopAppBar(
                 title = { Text("Add New Group") },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                        onEvent(GroupEvent.SetGroupName(""))
-                        onEvent(GroupEvent.SetRingtoneUri(null))
-                    }) {
+                    IconButton(onClick = onCancel) {
                         Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
                     }
                 },
                 actions = {
                     Button(
                         onClick = {
-                            if (state.name.isNotBlank()) {
-                                onEvent(GroupEvent.SaveGroup)
-                                navController.popBackStack()
-                            } else {
+                            if (state.name.isBlank()) {
                                 showNameError = true
+                                return@Button
+                            }
+
+                            coroutineScope.launch {
+                                val result = onSave()
+                                if (result.isSuccess) {
+                                    navController.popBackStack()
+                                }
                             }
                         },
                         modifier = Modifier.padding(end = 24.dp)
@@ -197,7 +205,7 @@ fun AddGroupScreen(
             OutlinedTextField(
                 value = state.name,
                 onValueChange = {
-                    onEvent(GroupEvent.SetGroupName(it))
+                    onNameChange(it)
                     if (it.isNotBlank()) {
                         showNameError = false
                     }
@@ -232,14 +240,18 @@ fun AddGroupScreen(
 @Composable
 fun GroupDetailScreen(
     navController: NavController,
-    contactState: ContactState,
-    groupState: GroupState,
-    onEvent: (GroupEvent) -> Unit
+    groupId: Int,
+    contactState: ContactsListState,
+    groupState: GroupsListState,
+    onChangeRingtone: suspend (Uri?) -> GroupMutationResult,
+    onDeleteGroup: suspend () -> GroupMutationResult
 ) {
-    val group = groupState.selectedGroup
+    val group = groupState.groups.find { it.id == groupId }
     val allContacts = contactState.contacts
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -248,7 +260,9 @@ fun GroupDetailScreen(
                 @Suppress("DEPRECATION")
                 val uri =
                     result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-                group?.let { onEvent(GroupEvent.ChangeGroupRingtone(it.id, uri)) }
+                coroutineScope.launch {
+                    onChangeRingtone(uri)
+                }
             }
         }
     )
@@ -263,38 +277,41 @@ fun GroupDetailScreen(
                     }
                 },
                 actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Settings")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Change Ringtone") },
-                                onClick = {
-                                    showMenu = false
-                                    ringtonePickerLauncher.launch(Intent(RingtoneManager.ACTION_RINGTONE_PICKER))
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        if (group?.isDeviceBacked == true) {
-                                            "Delete Disabled (Synced Group)"
-                                        } else {
-                                            "Delete Group"
-                                        }
-                                    )
-                                },
-                                enabled = group?.isMembershipEditable == true,
-                                onClick = {
-                                    showMenu = false
-                                    group?.let { onEvent(GroupEvent.DeleteGroup(it)) }
-                                    navController.popBackStack()
-                                }
-                            )
+                    if (group != null) {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Settings")
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Change Ringtone") },
+                                    onClick = {
+                                        showMenu = false
+                                        ringtonePickerLauncher.launch(
+                                            Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (group.deletesFromDevice) {
+                                                "Delete Group From Device"
+                                            } else {
+                                                "Delete Group"
+                                            }
+                                        )
+                                    },
+                                    enabled = group.canDelete,
+                                    onClick = {
+                                        showMenu = false
+                                        showDeleteConfirmation = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -308,7 +325,7 @@ fun GroupDetailScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Group not found!")
+                Text("Group not found.")
             }
             return@Scaffold
         }
@@ -349,7 +366,14 @@ fun GroupDetailScreen(
                         if (group.isDeviceBacked) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Synced from device contacts",
+                                text = "Imported from device contacts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else if (group.deletesFromDevice) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Syncs to device contacts",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -408,11 +432,57 @@ fun GroupDetailScreen(
                     ContactList(
                         contacts = groupContacts,
                         groups = groupState.groups,
-                        onContactClick = {},
+                        onContactClick = { contact ->
+                            navController.navigate(Screen.ContactDetails.createRoute(contact.id))
+                        },
                         onContactLongClick = {}
                     )
                 }
             }
         }
     }
+
+    if (group != null && showDeleteConfirmation) {
+        val confirmation = buildGroupDeletionConfirmation(group)
+        DeleteGroupConfirmationDialog(
+            title = confirmation.title,
+            message = confirmation.message,
+            confirmLabel = confirmation.confirmLabel,
+            onDismiss = { showDeleteConfirmation = false },
+            onConfirm = {
+                coroutineScope.launch {
+                    val result = onDeleteGroup()
+                    if (result.isSuccess) {
+                        showDeleteConfirmation = false
+                        navController.popBackStack()
+                    }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun DeleteGroupConfirmationDialog(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(confirmLabel)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

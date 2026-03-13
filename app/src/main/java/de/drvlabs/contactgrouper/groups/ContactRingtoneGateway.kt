@@ -7,7 +7,7 @@ import android.provider.ContactsContract
 
 interface ContactRingtoneGateway {
     suspend fun getCurrentRingtone(contactId: Long): String?
-    suspend fun applyRingtone(contactId: Long, ringtoneUri: String?)
+    suspend fun applyRingtone(contactId: Long, ringtoneUri: String?): Boolean
 }
 
 class AndroidContactRingtoneGateway(
@@ -32,7 +32,7 @@ class AndroidContactRingtoneGateway(
         }
     }
 
-    override suspend fun applyRingtone(contactId: Long, ringtoneUri: String?) {
+    override suspend fun applyRingtone(contactId: Long, ringtoneUri: String?): Boolean {
         val values = ContentValues().apply {
             if (ringtoneUri == null) {
                 putNull(ContactsContract.Contacts.CUSTOM_RINGTONE)
@@ -41,11 +41,11 @@ class AndroidContactRingtoneGateway(
             }
         }
 
-        contentResolver.update(
+        return contentResolver.update(
             ContactsContract.Contacts.CONTENT_URI,
             values,
             "${ContactsContract.Contacts._ID} = ?",
             arrayOf(contactId.toString())
-        )
+        ) > 0
     }
 }

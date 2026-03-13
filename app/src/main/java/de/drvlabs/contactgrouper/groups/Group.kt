@@ -30,4 +30,10 @@ data class Group(
 
     val isMembershipEditable: Boolean
         get() = syncSource == GroupSyncSource.LOCAL || !isReadOnly
+
+    val canDelete: Boolean
+        get() = syncSource == GroupSyncSource.LOCAL || !isReadOnly
+
+    val deletesFromDevice: Boolean
+        get() = deviceGroupId != null
 }

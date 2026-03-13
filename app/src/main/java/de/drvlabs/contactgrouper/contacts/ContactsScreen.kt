@@ -40,6 +40,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,22 +52,25 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.groups.Group
-import de.drvlabs.contactgrouper.groups.GroupEvent
-import de.drvlabs.contactgrouper.groups.GroupState
+import de.drvlabs.contactgrouper.groups.GroupMutationResult
+import de.drvlabs.contactgrouper.groups.isSuccess
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContactsMainScreen(
     navController: NavController,
-    contactState: ContactState,
-    onContactEvent: (ContactEvent) -> Unit,
-    onGroupEvent: (GroupEvent) -> Unit,
-    groupState: GroupState
+    state: ContactsListState,
+    groups: List<Group>,
+    onAssignContactsToGroups: suspend (List<Int>, List<Long>) -> GroupMutationResult
 ) {
-    var selectedContacts by remember { mutableStateOf(setOf<Long>()) }
+    var selectedContacts by rememberSaveable { mutableStateOf(emptySet<Long>()) }
     val isInSelectionMode = selectedContacts.isNotEmpty()
     var showAssignGroupDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     BackHandler(enabled = isInSelectionMode) {
         selectedContacts = emptySet()
@@ -73,8 +78,8 @@ fun ContactsMainScreen(
 
     Box {
         ContactList(
-            contacts = contactState.contacts,
-            groups = groupState.groups,
+            contacts = state.contacts,
+            groups = groups,
             selectedContacts = selectedContacts,
             onContactClick = { contact ->
                 if (isInSelectionMode) {
@@ -84,8 +89,7 @@ fun ContactsMainScreen(
                         selectedContacts + contact.id
                     }
                 } else {
-                    onContactEvent(ContactEvent.SetSelectContact(contact))
-                    navController.navigate("ContactDetails")
+                    navController.navigate(Screen.ContactDetails.createRoute(contact.id))
                 }
             },
             onContactLongClick = { contact ->
@@ -109,19 +113,36 @@ fun ContactsMainScreen(
 
         if (showAssignGroupDialog) {
             AssignToGroupDialog(
-                groups = groupState.groups,
+                groups = groups,
                 onDismiss = { showAssignGroupDialog = false },
                 onAssign = { groupIds ->
-                    onGroupEvent(
-                        GroupEvent.AssignContactsToGroups(
-                            groupIds = groupIds,
-                            contactIds = selectedContacts.toList()
-                        )
+                    assignContactsToGroups(
+                        scope = coroutineScope,
+                        groupIds = groupIds,
+                        contactIds = selectedContacts.toList(),
+                        onAssignContactsToGroups = onAssignContactsToGroups,
+                        onSuccess = {
+                            selectedContacts = emptySet()
+                            showAssignGroupDialog = false
+                        }
                     )
-                    selectedContacts = emptySet()
-                    showAssignGroupDialog = false
                 }
             )
+        }
+    }
+}
+
+private fun assignContactsToGroups(
+    scope: CoroutineScope,
+    groupIds: List<Int>,
+    contactIds: List<Long>,
+    onAssignContactsToGroups: suspend (List<Int>, List<Long>) -> GroupMutationResult,
+    onSuccess: () -> Unit
+) {
+    scope.launch {
+        val result = onAssignContactsToGroups(groupIds, contactIds)
+        if (result.isSuccess) {
+            onSuccess()
         }
     }
 }
@@ -138,10 +159,10 @@ private fun AssignToGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Assign to Groups") },
+        title = { Text("Assign To Groups") },
         text = {
             if (editableGroups.isEmpty()) {
-                Text("Create a local group first. Synced device groups are read-only.")
+                Text("Create a local group first. Imported read-only groups cannot be changed here.")
             } else {
                 LazyColumn {
                     items(editableGroups) { group ->
@@ -239,12 +260,14 @@ fun ContactList(
                         bottomStart = smallRadius,
                         bottomEnd = smallRadius
                     )
+
                     index == contactsInGroup.size - 1 -> RoundedCornerShape(
                         topStart = smallRadius,
                         topEnd = smallRadius,
                         bottomStart = largeRadius,
                         bottomEnd = largeRadius
                     )
+
                     else -> RoundedCornerShape(smallRadius)
                 }
 

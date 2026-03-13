@@ -31,6 +31,9 @@ interface GroupDao {
     @Query("SELECT * FROM `Group` WHERE deviceGroupId = :deviceGroupId")
     suspend fun getGroupByDeviceGroupId(deviceGroupId: Long): Group?
 
+    @Query("SELECT * FROM `Group` WHERE id IN (:groupIds)")
+    suspend fun getGroupsByIds(groupIds: List<Int>): List<Group>
+
     @Query("SELECT * FROM `Group` WHERE syncSource = :source ORDER BY name ASC")
     suspend fun getGroupsBySource(source: GroupSyncSource): List<Group>
 }

@@ -13,4 +13,7 @@ interface ContactRingtoneStateDao {
 
     @Query("SELECT * FROM ContactRingtoneState WHERE contactId = :contactId")
     suspend fun getByContactId(contactId: Long): ContactRingtoneState?
+
+    @Query("SELECT * FROM ContactRingtoneState WHERE contactId IN (:contactIds)")
+    suspend fun getByContactIds(contactIds: List<Long>): List<ContactRingtoneState>
 }
