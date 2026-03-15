@@ -46,6 +46,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,34 +62,67 @@ import androidx.navigation.NavController
 import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.contacts.ContactList
 import de.drvlabs.contactgrouper.contacts.ContactsListState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsMainScreen(
     navController: NavController,
     contactState: ContactsListState,
-    groupState: GroupsListState
+    groupState: GroupsListState,
+    onRefresh: suspend () -> Unit
 ) {
     val allContacts = contactState.contacts
+    val coroutineScope = rememberCoroutineScope()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val minimumRefreshIndicatorMillis = 350L
 
     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-        if (groupState.groups.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No groups yet. Tap '+' to add one.", fontSize = 18.sp)
+        PullToRefreshBox(
+            modifier = Modifier.fillMaxSize(),
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                if (isRefreshing) {
+                    return@PullToRefreshBox
+                }
+                coroutineScope.launch {
+                    isRefreshing = true
+                    val refreshStartedAt = System.currentTimeMillis()
+                    try {
+                        onRefresh()
+                    } finally {
+                        val elapsed = System.currentTimeMillis() - refreshStartedAt
+                        val remaining = minimumRefreshIndicatorMillis - elapsed
+                        if (remaining > 0) {
+                            delay(remaining)
+                        }
+                        isRefreshing = false
+                    }
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(groupState.groups) { group ->
-                    val memberCount = allContacts.count { group.id in it.groupIds }
-                    GroupCard(group = group, memberCount = memberCount) {
-                        navController.navigate(Screen.GroupDetails.createRoute(group.id))
+        ) {
+            if (groupState.groups.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No groups yet.\nPull down to sync device groups or tap '+' to add one.",
+                        fontSize = 18.sp
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(groupState.groups) { group ->
+                        val memberCount = allContacts.count { group.id in it.groupIds }
+                        GroupCard(group = group, memberCount = memberCount) {
+                            navController.navigate(Screen.GroupDetails.createRoute(group.id))
+                        }
                     }
                 }
             }
@@ -116,15 +150,6 @@ fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = group.name, style = MaterialTheme.typography.titleLarge)
-                if (group.isDeviceBacked) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "Imported from device",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = "$memberCount members", style = MaterialTheme.typography.bodyMedium)

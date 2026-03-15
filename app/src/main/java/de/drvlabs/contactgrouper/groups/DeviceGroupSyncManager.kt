@@ -12,6 +12,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 class DeviceGroupSyncManager(
     private val contentResolver: ContentResolver,
@@ -21,6 +24,7 @@ class DeviceGroupSyncManager(
     private var scope: CoroutineScope? = null
     private var syncJob: Job? = null
     private var started = false
+    private val syncMutex = Mutex()
 
     private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) {
@@ -60,6 +64,13 @@ class DeviceGroupSyncManager(
         scope = null
     }
 
+    suspend fun syncNow(): GroupMutationResult {
+        syncJob?.cancel()
+        return withContext(Dispatchers.IO) {
+            performSync()
+        }
+    }
+
     private fun scheduleSync(immediate: Boolean = false) {
         val activeScope = scope ?: return
         syncJob?.cancel()
@@ -67,6 +78,12 @@ class DeviceGroupSyncManager(
             if (!immediate) {
                 delay(400)
             }
+            performSync()
+        }
+    }
+
+    private suspend fun performSync(): GroupMutationResult {
+        return syncMutex.withLock {
             repository.syncDeviceGroups(source.loadSnapshot())
         }
     }

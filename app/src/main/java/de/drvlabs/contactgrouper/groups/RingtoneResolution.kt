@@ -8,9 +8,7 @@ data class EffectiveGroupMembership(
 object RingtoneResolution {
 
     fun resolvePrimaryMembershipId(memberships: List<GroupMembership>): Int? {
-        return memberships
-            .sortedByDescending { it.assignedAt }
-            .firstOrNull()
+        return memberships.maxByOrNull { it.assignedAt }
             ?.groupId
     }
 

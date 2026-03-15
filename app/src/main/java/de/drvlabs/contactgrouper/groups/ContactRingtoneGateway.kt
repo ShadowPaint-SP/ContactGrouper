@@ -2,7 +2,6 @@ package de.drvlabs.contactgrouper.groups
 
 import android.content.ContentResolver
 import android.content.ContentValues
-import android.net.Uri
 import android.provider.ContactsContract
 
 interface ContactRingtoneGateway {

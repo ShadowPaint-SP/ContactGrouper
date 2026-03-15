@@ -53,10 +53,11 @@ import de.drvlabs.contactgrouper.contacts.ContactsMainScreen
 import de.drvlabs.contactgrouper.contacts.ContactsViewModel
 import de.drvlabs.contactgrouper.groups.AddGroupScreen
 import de.drvlabs.contactgrouper.groups.AddGroupViewModel
+import de.drvlabs.contactgrouper.groups.GroupDetailScreen
 import de.drvlabs.contactgrouper.groups.GroupViewModel
 import de.drvlabs.contactgrouper.groups.GroupViewModel.Companion.factory as groupFactory
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
-import de.drvlabs.contactgrouper.groups.GroupDetailScreen
+import de.drvlabs.contactgrouper.groups.userMessage
 import de.drvlabs.contactgrouper.permission.ContactsPermissionEvaluator
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
 
@@ -223,7 +224,12 @@ class MainActivity : ComponentActivity() {
                                     GroupsMainScreen(
                                         navController = navController,
                                         contactState = contactState,
-                                        groupState = groupState
+                                        groupState = groupState,
+                                        onRefresh = {
+                                            appContainer.deviceGroupSyncManager.syncNow()
+                                                .userMessage()
+                                                ?.let { snackbarHostState.showSnackbar(it) }
+                                        }
                                     )
                                 }
                                 composable(

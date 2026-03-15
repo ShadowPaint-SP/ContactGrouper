@@ -27,7 +27,6 @@ class ContactsContractDeviceGroupSource(
             groupProjection,
             """
             ${ContactsContract.Groups.DELETED} = 0 AND
-            ${ContactsContract.Groups.GROUP_VISIBLE} = 1 AND
             ${ContactsContract.Groups.TITLE} IS NOT NULL AND
             TRIM(${ContactsContract.Groups.TITLE}) != ''
             """.trimIndent(),
@@ -60,7 +59,7 @@ class ContactsContractDeviceGroupSource(
             return DeviceGroupSnapshot(emptyList(), emptyList())
         }
 
-        val visibleDeviceGroupIds = groups.map { it.deviceGroupId }.toSet()
+        val importedDeviceGroupIds = groups.map { it.deviceGroupId }.toSet()
         val membershipProjection = arrayOf(
             ContactsContract.Data.CONTACT_ID,
             ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID
@@ -80,7 +79,7 @@ class ContactsContractDeviceGroupSource(
 
             while (cursor.moveToNext()) {
                 val deviceGroupId = cursor.getLong(groupRowIdIndex)
-                if (deviceGroupId !in visibleDeviceGroupIds) {
+                if (deviceGroupId !in importedDeviceGroupIds) {
                     continue
                 }
                 memberships += DeviceGroupMembershipRecord(
