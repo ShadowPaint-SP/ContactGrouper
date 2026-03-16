@@ -32,14 +32,14 @@
    - Tap **"Change Ringtone"** if you want to change it later
 5. Tap **"Save"** to create the group
 
-### Assigning Contacts to a Group
+### Assigning Contacts to Groups
 
 #### Method 1: From the Contacts Tab
 1. Navigate to the **Contacts** tab
 2. Long-press on a contact to enter selection mode
 3. Select one or more contacts
 4. Tap the **"Assign to Group"** button that appears
-5. Select the group you want to assign them to
+5. Select one or more groups
 6. Tap **"Assign"**
 
 #### Method 2: From the Contact Detail
@@ -47,7 +47,7 @@
 2. Tap on a contact to view their details
 3. Scroll down to the **Group** section
 4. If the contact is already in a group, you can tap the delete button to remove them
-5. To assign a contact to a group, use **Method 1** above
+5. To assign a contact to additional groups, use the add-to-group action in the contact detail
 
 ### Viewing Group Details
 
@@ -89,24 +89,27 @@
 2. Tap on the group you want to delete
 3. Tap the **⋮ (Settings menu)** button in the top right
 4. Select **"Delete Group"**
-5. The group is deleted (contacts are not deleted, just unassigned)
+5. Confirm the warning dialog
+6. The group is deleted (contacts are not deleted, just unassigned)
+   - If the group is synced to device contacts, deleting it removes it from the whole device
 
 ---
 
 ## How Ringtones Work
 
-- When a contact is assigned to a group, the group's ringtone is **automatically applied** to that contact
-- Each contact can only be in **one group at a time**
-- If you move a contact to a different group, the old ringtone is cleared and the new group's ringtone is applied
+- When a contact is assigned to one or more groups, the most recently assigned group with a ringtone controls the contact's ringtone
+- Each contact can belong to **multiple groups at the same time**
+- If the newest group has no ringtone, the app falls back to the next newest group that does
 - If you change a group's ringtone, **all contacts in that group** automatically get the new ringtone
 - If you remove a contact from a group, the **custom ringtone is cleared** and the contact reverts to the default system ringtone
+- Deleting a group that is synced to the device removes it from the device's contact groups as well, and the app shows a confirmation dialog before doing that
 
 ---
 
 ## Technical Details
 
 - **Built with**: Android Jetpack Compose, Room Database, Kotlin
-- **Requires**: Android 6.0 or higher
+- **Requires**: Android 10 or higher
 - **Permissions**: Contacts (READ/WRITE), Phone (to set ringtones)
 
 ---

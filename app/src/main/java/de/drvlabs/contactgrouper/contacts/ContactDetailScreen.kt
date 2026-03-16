@@ -17,15 +17,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,53 +36,92 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import de.drvlabs.contactgrouper.groups.Group
-import de.drvlabs.contactgrouper.groups.GroupEvent
-import de.drvlabs.contactgrouper.groups.GroupState
-import androidx.core.net.toUri
+import de.drvlabs.contactgrouper.groups.GroupMutationResult
+import de.drvlabs.contactgrouper.groups.GroupsListState
+import de.drvlabs.contactgrouper.groups.isSuccess
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactDetailScreen(
     navController: NavController,
-    contactState: ContactState,
-    groupState: GroupState,
-    onGroupEvent: (GroupEvent) -> Unit,
-    onContactEvent: (ContactEvent) -> Unit
+    contactId: Long,
+    contactState: ContactsListState,
+    groupState: GroupsListState,
+    onAssignGroups: suspend (List<Int>) -> GroupMutationResult,
+    onRemoveGroup: suspend (Int) -> GroupMutationResult
 ) {
-    val contact = contactState.selectedContact!!//TODO make better
+    val contact = contactState.contacts.find { it.id == contactId }
+    val groupsById = groupState.groups.associateBy { it.id }
+    var showAddGroupDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    val availableGroups = contact?.let { selected ->
+                        groupState.groups.filter {
+                            it.isMembershipEditable && it.id !in selected.groupIds
+                        }
+                    }.orEmpty()
+                    if (availableGroups.isNotEmpty()) {
+                        IconButton(onClick = { showAddGroupDialog = true }) {
+                            Icon(Icons.Default.GroupAdd, contentDescription = "Add to group")
+                        }
                     }
                 }
             )
         }
     ) { paddingValues ->
+        if (contact == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Contact not found.")
+            }
+            return@Scaffold
+        }
+
+        val contactGroups = contact.groupIds.mapNotNull(groupsById::get)
+        val availableGroups = groupState.groups.filter {
+            it.isMembershipEditable && it.id !in contact.groupIds
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp)
         ) {
-
             item {
                 ContactHeader(contact)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -124,41 +166,64 @@ fun ContactDetailScreen(
                     }
                 }
             }
-            if (contact.customRingtone != null) {
-                item {
-                    DetailSection(title = "Ringtone") {
-                        val context = LocalContext.current
-                        val ringtoneUri = contact.customRingtone.toUri()
-                        val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
-                        val ringtoneTitle = ringtone?.getTitle(context) ?: "Unknown Ringtone"
-                        
-                        DetailItem(
-                            icon = Icons.Default.PhoneInTalk,
-                            value = ringtoneTitle,
-                            type = null
-                        )
-                    }
-                }
-            }
-            if (contact.groupId != null){
-                item {
-                    DetailSection(title = "Group") {
-                        val group = groupState.groups.find { it.id == contact.groupId }!!//TODO This is unsafe
-                        val context = LocalContext.current
-                        val ringtone = RingtoneManager.getRingtone( context,group.ringtoneUri)
-                        val title = ringtone.getTitle(context)
 
-                        DetailGroupItem(
-                            icon = Icons.Default.Groups,
-                            onGroupEvent = onGroupEvent,
-                            onContactEvent = onContactEvent,
-                            contact = contact,
-                            group = group,
-                            type = "Ringtone: $title"
+            item {
+                DetailSection(title = "Ringtone") {
+                    val context = LocalContext.current
+                    val title = contact.customRingtone?.let { ringtoneValue ->
+                        val ringtone = RingtoneManager.getRingtone(context, ringtoneValue.toUri())
+                        ringtone?.getTitle(context)
+                    } ?: "Default"
+
+                    DetailItem(
+                        icon = Icons.Default.PhoneInTalk,
+                        value = title ?: "Default",
+                        type = null
+                    )
+                }
+            }
+
+            if (contactGroups.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Groups") {
+                        contactGroups.forEach { group ->
+                            DetailGroupItem(
+                                group = group,
+                                isEffective = contact.effectiveRingtoneGroupId == group.id,
+                                onRemove = {
+                                    coroutineScope.launch {
+                                        onRemoveGroup(group.id)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            } else if (availableGroups.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Groups") {
+                        Text(
+                            text = "This contact is not in any group yet.",
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
             }
+        }
+
+        if (showAddGroupDialog) {
+            AddContactToGroupsDialog(
+                groups = availableGroups,
+                onDismiss = { showAddGroupDialog = false },
+                onAssign = { groupIds ->
+                    coroutineScope.launch {
+                        val result = onAssignGroups(groupIds)
+                        if (result.isSuccess) {
+                            showAddGroupDialog = false
+                        }
+                    }
+                }
+            )
         }
     }
 }
@@ -192,12 +257,10 @@ private fun ContactHeader(contact: Contact) {
                 )
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = contact.displayName,
-                style = MaterialTheme.typography.headlineMedium
-            )
-        }
+        Text(
+            text = contact.displayName,
+            style = MaterialTheme.typography.headlineMedium
+        )
     }
 }
 
@@ -223,7 +286,11 @@ private fun DetailSection(title: String, content: @Composable ColumnScope.() -> 
 }
 
 @Composable
-private fun DetailItem(icon: ImageVector, value: String, type: String?) {
+private fun DetailItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    type: String?
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
@@ -246,53 +313,119 @@ private fun DetailItem(icon: ImageVector, value: String, type: String?) {
 }
 
 @Composable
-private fun DetailGroupItem(icon: ImageVector, contact: Contact, group: Group, type: String?,
-                            onGroupEvent: (GroupEvent) -> Unit,
-                            onContactEvent: (ContactEvent) -> Unit) {
+private fun DetailGroupItem(
+    group: Group,
+    isEffective: Boolean,
+    onRemove: () -> Unit
+) {
+    val subtitle = buildString {
+        if (isEffective) {
+            append("Controls ringtone")
+        }
+        if (group.isDeviceBacked) {
+            if (isNotEmpty()) append(" • ")
+            append("Imported from device contacts")
+        }
+    }
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            imageVector = icon,
+            imageVector = Icons.Default.Groups,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.size(24.dp)
         )
         Spacer(Modifier.width(16.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = group.name, style = MaterialTheme.typography.bodyLarge)
-            type?.let {
+            if (subtitle.isNotBlank()) {
                 Text(
-                    text = it,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.CenterEnd
-        ){
-            IconButton(
-                onClick = { 
-                    onGroupEvent(GroupEvent.RemoveGroupMember(contact, group))
-                    onContactEvent(ContactEvent.ClearContactGroup(contact.id))
-                },
-                modifier = Modifier.padding(start = 16.dp)
-            ) {
-                Icon(Icons.Filled.DeleteForever, contentDescription = "Remove Group")
+        if (group.isMembershipEditable) {
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Default.DeleteForever, contentDescription = "Remove from group")
             }
         }
     }
 }
+
+@Composable
+private fun AddContactToGroupsDialog(
+    groups: List<Group>,
+    onDismiss: () -> Unit,
+    onAssign: (List<Int>) -> Unit
+) {
+    val selectedGroupIds = remember { mutableStateListOf<Int>() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Contact To Groups") },
+        text = {
+            LazyColumn {
+                items(groups) { group ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Groups,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = group.name)
+                            if (group.deletesFromDevice) {
+                                Text(
+                                    text = "Changes to this group sync to device contacts",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        TextButton(
+                            onClick = {
+                                if (group.id in selectedGroupIds) {
+                                    selectedGroupIds.remove(group.id)
+                                } else {
+                                    selectedGroupIds.add(group.id)
+                                }
+                            }
+                        ) {
+                            Text(if (group.id in selectedGroupIds) "Selected" else "Add")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onAssign(selectedGroupIds.toList()) },
+                enabled = selectedGroupIds.isNotEmpty()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 private fun getPhoneTypeLabel(type: Int): String {
     return when (type) {
         ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> "Home"
         ContactsContract.CommonDataKinds.Phone.TYPE_WORK -> "Work"
         ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> "Mobile"
-        ContactsContract.CommonDataKinds.Phone.TYPE_FAX_WORK -> "Work Fax"
-        ContactsContract.CommonDataKinds.Phone.TYPE_FAX_HOME -> "Home Fax"
-        ContactsContract.CommonDataKinds.Phone.TYPE_OTHER -> "Other"
         ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> "Main"
         else -> "Other"
     }
@@ -303,7 +436,6 @@ private fun getEmailTypeLabel(type: Int): String {
         ContactsContract.CommonDataKinds.Email.TYPE_HOME -> "Home"
         ContactsContract.CommonDataKinds.Email.TYPE_WORK -> "Work"
         ContactsContract.CommonDataKinds.Email.TYPE_MOBILE -> "Mobile"
-        ContactsContract.CommonDataKinds.Email.TYPE_OTHER -> "Other"
         else -> "Other"
     }
 }
@@ -312,7 +444,6 @@ private fun getAddressTypeLabel(type: Int): String {
     return when (type) {
         ContactsContract.CommonDataKinds.StructuredPostal.TYPE_HOME -> "Home"
         ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK -> "Work"
-        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_OTHER -> "Other"
         else -> "Other"
     }
 }

@@ -1,6 +1,7 @@
 package de.drvlabs.contactgrouper.groups
 
 import android.net.Uri
+import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
 import androidx.room.TypeConverter
 
@@ -17,28 +18,22 @@ class Converters {
     }
 
     @TypeConverter
-    fun ulongToLong(value: ULong): Long {
-        return value.toLong()
+    fun colorToLong(color: Color): Long {
+        return color.value.toLong()
     }
 
     @TypeConverter
-    fun longToUlong(value: Long): ULong {
-        return value.toULong()
+    fun longToColor(value: Long): Color {
+        return Color(value.toULong())
     }
 
     @TypeConverter
-    fun fromIntToList(value: String): List<Long> {
-        if (value.isEmpty()) {
-            return emptyList()
-        }
-        return value.split(",").map { it.toLong() }
+    fun groupSyncSourceToString(source: GroupSyncSource): String {
+        return source.name
     }
 
     @TypeConverter
-    fun fromListToInt(list: List<Long>): String {
-        if (list.isEmpty()) {
-            return ""
-        }
-        return list.joinToString(",")
+    fun stringToGroupSyncSource(value: String): GroupSyncSource {
+        return GroupSyncSource.valueOf(value)
     }
 }
