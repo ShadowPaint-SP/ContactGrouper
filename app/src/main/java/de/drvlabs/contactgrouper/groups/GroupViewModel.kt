@@ -34,6 +34,13 @@ class GroupViewModel(
         return handleResult(repository.assignContactsToGroups(groupIds, contactIds))
     }
 
+    suspend fun setContactGroups(
+        contactId: Long,
+        groupIds: List<Int>
+    ): GroupMutationResult {
+        return handleResult(repository.setContactGroups(contactId, groupIds))
+    }
+
     suspend fun removeContactFromGroup(
         groupId: Int,
         contactId: Long

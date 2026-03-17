@@ -2,6 +2,8 @@ package de.drvlabs.contactgrouper.permission
 
 import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 data class ContactsPermissionState(
     val hasPermission: Boolean,
@@ -11,11 +13,20 @@ data class ContactsPermissionState(
 object ContactsPermissionEvaluator {
     fun evaluate(
         activity: Activity,
-        hasPermission: Boolean,
         hasRequestedPermission: Boolean
     ): ContactsPermissionState {
+        val hasReadPermission = ContextCompat.checkSelfPermission(
+            activity,
+            Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasWritePermission = ContextCompat.checkSelfPermission(
+            activity,
+            Manifest.permission.WRITE_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+
         return evaluate(
-            hasPermission = hasPermission,
+            hasReadPermission = hasReadPermission,
+            hasWritePermission = hasWritePermission,
             hasRequestedPermission = hasRequestedPermission,
             shouldShowReadRationale = activity.shouldShowRequestPermissionRationale(
                 Manifest.permission.READ_CONTACTS
@@ -27,11 +38,13 @@ object ContactsPermissionEvaluator {
     }
 
     fun evaluate(
-        hasPermission: Boolean,
+        hasReadPermission: Boolean,
+        hasWritePermission: Boolean,
         hasRequestedPermission: Boolean,
         shouldShowReadRationale: Boolean,
         shouldShowWriteRationale: Boolean
     ): ContactsPermissionState {
+        val hasPermission = hasReadPermission && hasWritePermission
         if (hasPermission) {
             return ContactsPermissionState(
                 hasPermission = true,
@@ -39,8 +52,13 @@ object ContactsPermissionEvaluator {
             )
         }
 
+        val missingReadPermission = !hasReadPermission
+        val missingWritePermission = !hasWritePermission
         val permanentlyDenied = hasRequestedPermission &&
-            (!shouldShowReadRationale || !shouldShowWriteRationale)
+            (
+                (missingReadPermission && !shouldShowReadRationale) ||
+                    (missingWritePermission && !shouldShowWriteRationale)
+                )
 
         return ContactsPermissionState(
             hasPermission = false,

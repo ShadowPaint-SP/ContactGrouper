@@ -112,6 +112,92 @@ class RoomGroupsRepository(
         }
     }
 
+    override suspend fun setContactGroups(
+        contactId: Long,
+        groupIds: List<Int>
+    ): GroupMutationResult {
+        return runMutation {
+            val selectedGroupIds = groupIds.distinct().toSet()
+            val currentMemberships = database.membershipDao.getMembershipsForContact(contactId)
+            val relevantGroupIds = (currentMemberships.map(GroupMembership::groupId) + selectedGroupIds)
+                .distinct()
+            val groupsById = if (relevantGroupIds.isEmpty()) {
+                emptyMap()
+            } else {
+                database.groupDao.getGroupsByIds(relevantGroupIds).associateBy(Group::id)
+            }
+            val updatePlan = planEditableMembershipUpdate(
+                currentMemberships = currentMemberships,
+                groupsById = groupsById,
+                selectedGroupIds = selectedGroupIds
+            )
+
+            if (updatePlan.groupIdsToAdd.isEmpty() && updatePlan.membershipsToRemove.isEmpty()) {
+                return@runMutation GroupMutationResult.Success
+            }
+
+            val lookupCache = ContactAccountLookupCache()
+            var providerWriteFailed = false
+            val groupsToAdd = updatePlan.groupIdsToAdd.mapNotNull { groupId ->
+                groupsById[groupId]
+            }.map { group ->
+                val mirrorOutcome = ensureMirrorForLocalGroup(group, listOf(contactId), lookupCache)
+                if (!mirrorOutcome.mirroredToDevice) {
+                    providerWriteFailed = true
+                }
+                mirrorOutcome.group
+            }
+
+            database.withTransaction {
+                var timestamp = clock()
+                groupsToAdd.forEach { group ->
+                    database.membershipDao.upsertMembership(
+                        GroupMembership(
+                            groupId = group.id,
+                            contactId = contactId,
+                            assignedAt = timestamp++,
+                            source = group.syncSource
+                        )
+                    )
+                }
+
+                updatePlan.membershipsToRemove.forEach { membership ->
+                    database.membershipDao.deleteMembership(membership.groupId, membership.contactId)
+                }
+            }
+
+            groupsToAdd.forEach { group ->
+                val deviceGroupId = group.deviceGroupId ?: return@forEach
+                val synced = deviceGroupWriteGateway.addContactToGroup(
+                    contactId = contactId,
+                    group = group,
+                    cache = lookupCache
+                )
+                if (!synced && deviceGroupId == group.deviceGroupId) {
+                    providerWriteFailed = true
+                }
+            }
+
+            updatePlan.membershipsToRemove.forEach { membership ->
+                val group = groupsById[membership.groupId] ?: return@forEach
+                val deviceGroupId = group.deviceGroupId ?: return@forEach
+                if (!deviceGroupWriteGateway.removeContactFromGroup(contactId, deviceGroupId)) {
+                    providerWriteFailed = true
+                }
+            }
+
+            if (!refreshRingtones(setOf(contactId))) {
+                providerWriteFailed = true
+            }
+
+            if (providerWriteFailed) {
+                GroupMutationResult.ProviderWriteFailed(GroupMutationAction.SET_CONTACT_GROUPS)
+            } else {
+                GroupMutationResult.Success
+            }
+        }
+    }
+
     override suspend fun removeContactFromGroup(
         groupId: Int,
         contactId: Long
