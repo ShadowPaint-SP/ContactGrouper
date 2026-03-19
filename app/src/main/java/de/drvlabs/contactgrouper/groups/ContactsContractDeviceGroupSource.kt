@@ -1,6 +1,7 @@
 package de.drvlabs.contactgrouper.groups
 
 import android.content.ContentResolver
+import android.database.Cursor
 import android.provider.ContactsContract
 
 class ContactsContractDeviceGroupSource(
@@ -27,30 +28,34 @@ class ContactsContractDeviceGroupSource(
             groupProjection,
             """
             ${ContactsContract.Groups.DELETED} = 0 AND
-            ${ContactsContract.Groups.TITLE} IS NOT NULL AND
-            TRIM(${ContactsContract.Groups.TITLE}) != ''
+            ${ContactsContract.Groups.TITLE} IS NOT NULL
             """.trimIndent(),
             null,
             "${ContactsContract.Groups.TITLE} COLLATE NOCASE ASC"
         )?.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(ContactsContract.Groups._ID)
             val titleIndex = cursor.getColumnIndexOrThrow(ContactsContract.Groups.TITLE)
-            val accountNameIndex = cursor.getColumnIndexOrThrow(ContactsContract.Groups.ACCOUNT_NAME)
-            val accountTypeIndex = cursor.getColumnIndexOrThrow(ContactsContract.Groups.ACCOUNT_TYPE)
-            val dataSetIndex = cursor.getColumnIndexOrThrow(ContactsContract.Groups.DATA_SET)
-            val readOnlyIndex =
-                cursor.getColumnIndexOrThrow(ContactsContract.Groups.GROUP_IS_READ_ONLY)
-            val visibleIndex = cursor.getColumnIndexOrThrow(ContactsContract.Groups.GROUP_VISIBLE)
 
             while (cursor.moveToNext()) {
+                val title = cursor.getString(titleIndex).orEmpty().trim()
+                if (title.isBlank()) {
+                    continue
+                }
+
                 groups += DeviceGroupRecord(
                     deviceGroupId = cursor.getLong(idIndex),
-                    title = cursor.getString(titleIndex),
-                    accountName = cursor.getString(accountNameIndex),
-                    accountType = cursor.getString(accountTypeIndex),
-                    dataSet = cursor.getString(dataSetIndex),
-                    isReadOnly = cursor.getInt(readOnlyIndex) != 0,
-                    isVisible = cursor.getInt(visibleIndex) != 0
+                    title = title,
+                    accountName = cursor.getOptionalString(ContactsContract.Groups.ACCOUNT_NAME),
+                    accountType = cursor.getOptionalString(ContactsContract.Groups.ACCOUNT_TYPE),
+                    dataSet = cursor.getOptionalString(ContactsContract.Groups.DATA_SET),
+                    isReadOnly = cursor.getOptionalBoolean(
+                        ContactsContract.Groups.GROUP_IS_READ_ONLY,
+                        defaultValue = false
+                    ),
+                    isVisible = cursor.getOptionalBoolean(
+                        ContactsContract.Groups.GROUP_VISIBLE,
+                        defaultValue = true
+                    )
                 )
             }
         }
@@ -94,4 +99,23 @@ class ContactsContractDeviceGroupSource(
             memberships = memberships.distinct()
         )
     }
+}
+
+private fun Cursor.getOptionalString(columnName: String): String? {
+    val index = getColumnIndex(columnName)
+    if (index == -1 || isNull(index)) {
+        return null
+    }
+    return getString(index)
+}
+
+private fun Cursor.getOptionalBoolean(
+    columnName: String,
+    defaultValue: Boolean
+): Boolean {
+    val index = getColumnIndex(columnName)
+    if (index == -1 || isNull(index)) {
+        return defaultValue
+    }
+    return getInt(index) != 0
 }

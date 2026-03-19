@@ -3,6 +3,7 @@ package de.drvlabs.contactgrouper.contacts
 import android.media.RingtoneManager
 import android.provider.ContactsContract
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
@@ -67,12 +70,12 @@ fun ContactDetailScreen(
     contactId: Long,
     contactState: ContactsListState,
     groupState: GroupsListState,
-    onAssignGroups: suspend (List<Int>) -> GroupMutationResult,
+    onSaveGroups: suspend (List<Int>) -> GroupMutationResult,
     onRemoveGroup: suspend (Int) -> GroupMutationResult
 ) {
     val contact = contactState.contacts.find { it.id == contactId }
     val groupsById = groupState.groups.associateBy { it.id }
-    var showAddGroupDialog by remember { mutableStateOf(false) }
+    var showManageGroupsDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
@@ -85,14 +88,10 @@ fun ContactDetailScreen(
                     }
                 },
                 actions = {
-                    val availableGroups = contact?.let { selected ->
-                        groupState.groups.filter {
-                            it.isMembershipEditable && it.id !in selected.groupIds
-                        }
-                    }.orEmpty()
-                    if (availableGroups.isNotEmpty()) {
-                        IconButton(onClick = { showAddGroupDialog = true }) {
-                            Icon(Icons.Default.GroupAdd, contentDescription = "Add to group")
+                    val editableGroups = groupState.groups.filter { it.isMembershipEditable }
+                    if (editableGroups.isNotEmpty()) {
+                        IconButton(onClick = { showManageGroupsDialog = true }) {
+                            Icon(Icons.Default.GroupAdd, contentDescription = "Manage groups")
                         }
                     }
                 }
@@ -112,9 +111,12 @@ fun ContactDetailScreen(
         }
 
         val contactGroups = contact.groupIds.mapNotNull(groupsById::get)
-        val availableGroups = groupState.groups.filter {
-            it.isMembershipEditable && it.id !in contact.groupIds
-        }
+        val editableGroups = groupState.groups
+            .filter { it.isMembershipEditable }
+            .sortedBy { it.name.lowercase() }
+        val selectedEditableGroupIds = editableGroups
+            .filter { it.id in contact.groupIds }
+            .map(Group::id)
 
         LazyColumn(
             modifier = Modifier
@@ -189,7 +191,6 @@ fun ContactDetailScreen(
                         contactGroups.forEach { group ->
                             DetailGroupItem(
                                 group = group,
-                                isEffective = contact.effectiveRingtoneGroupId == group.id,
                                 onRemove = {
                                     coroutineScope.launch {
                                         onRemoveGroup(group.id)
@@ -199,7 +200,7 @@ fun ContactDetailScreen(
                         }
                     }
                 }
-            } else if (availableGroups.isNotEmpty()) {
+            } else if (editableGroups.isNotEmpty()) {
                 item {
                     DetailSection(title = "Groups") {
                         Text(
@@ -211,15 +212,16 @@ fun ContactDetailScreen(
             }
         }
 
-        if (showAddGroupDialog) {
-            AddContactToGroupsDialog(
-                groups = availableGroups,
-                onDismiss = { showAddGroupDialog = false },
-                onAssign = { groupIds ->
+        if (showManageGroupsDialog) {
+            ManageContactGroupsDialog(
+                groups = editableGroups,
+                selectedGroupIds = selectedEditableGroupIds,
+                onDismiss = { showManageGroupsDialog = false },
+                onSave = { groupIds ->
                     coroutineScope.launch {
-                        val result = onAssignGroups(groupIds)
+                        val result = onSaveGroups(groupIds)
                         if (result.isSuccess) {
-                            showAddGroupDialog = false
+                            showManageGroupsDialog = false
                         }
                     }
                 }
@@ -315,19 +317,8 @@ private fun DetailItem(
 @Composable
 private fun DetailGroupItem(
     group: Group,
-    isEffective: Boolean,
     onRemove: () -> Unit
 ) {
-    val subtitle = buildString {
-        if (isEffective) {
-            append("Controls ringtone")
-        }
-        if (group.isDeviceBacked) {
-            if (isNotEmpty()) append(" • ")
-            append("Imported from device contacts")
-        }
-    }
-
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Default.Groups,
@@ -336,16 +327,11 @@ private fun DetailGroupItem(
             modifier = Modifier.size(24.dp)
         )
         Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = group.name, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle.isNotBlank()) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Text(
+            text = group.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
         if (group.isMembershipEditable) {
             IconButton(onClick = onRemove) {
                 Icon(Icons.Default.DeleteForever, contentDescription = "Remove from group")
@@ -355,60 +341,70 @@ private fun DetailGroupItem(
 }
 
 @Composable
-private fun AddContactToGroupsDialog(
+private fun ManageContactGroupsDialog(
     groups: List<Group>,
+    selectedGroupIds: List<Int>,
     onDismiss: () -> Unit,
-    onAssign: (List<Int>) -> Unit
+    onSave: (List<Int>) -> Unit
 ) {
-    val selectedGroupIds = remember { mutableStateListOf<Int>() }
+    val initialSelectedGroupIds = remember(selectedGroupIds) { selectedGroupIds.toSet() }
+    val currentSelectedGroupIds = remember(groups, initialSelectedGroupIds) {
+        mutableStateListOf<Int>().apply {
+            addAll(selectedGroupIds)
+        }
+    }
+    val hasChanges = currentSelectedGroupIds.toSet() != initialSelectedGroupIds
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Contact To Groups") },
+        title = { Text("Manage Groups") },
         text = {
             LazyColumn {
                 items(groups) { group ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable {
+                                if (group.id in currentSelectedGroupIds) {
+                                    currentSelectedGroupIds.remove(group.id)
+                                } else {
+                                    currentSelectedGroupIds.add(group.id)
+                                }
+                            }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Groups,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                        Checkbox(
+                            checked = group.id in currentSelectedGroupIds,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    if (group.id !in currentSelectedGroupIds) {
+                                        currentSelectedGroupIds.add(group.id)
+                                    }
+                                } else {
+                                    currentSelectedGroupIds.remove(group.id)
+                                }
+                            },
+                            modifier = Modifier.testTag("manage-group-checkbox-${group.id}")
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = group.name)
-                            if (group.deletesFromDevice) {
-                                Text(
-                                    text = "Changes to this group sync to device contacts",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        TextButton(
-                            onClick = {
-                                if (group.id in selectedGroupIds) {
-                                    selectedGroupIds.remove(group.id)
-                                } else {
-                                    selectedGroupIds.add(group.id)
-                                }
-                            }
-                        ) {
-                            Text(if (group.id in selectedGroupIds) "Selected" else "Add")
-                        }
+                        Text(
+                            text = group.name,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onAssign(selectedGroupIds.toList()) },
-                enabled = selectedGroupIds.isNotEmpty()
+                onClick = {
+                    onSave(
+                        groups.filter { it.id in currentSelectedGroupIds }
+                            .map(Group::id)
+                    )
+                },
+                enabled = hasChanges
             ) {
                 Text("Save")
             }

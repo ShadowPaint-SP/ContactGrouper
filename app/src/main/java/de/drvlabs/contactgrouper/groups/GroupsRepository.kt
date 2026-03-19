@@ -9,6 +9,7 @@ interface GroupsRepository {
     suspend fun getGroup(groupId: Int): Group?
     suspend fun createLocalGroup(name: String, ringtoneUri: Uri?): GroupMutationResult
     suspend fun assignContactsToGroups(groupIds: List<Int>, contactIds: List<Long>): GroupMutationResult
+    suspend fun setContactGroups(contactId: Long, groupIds: List<Int>): GroupMutationResult
     suspend fun removeContactFromGroup(groupId: Int, contactId: Long): GroupMutationResult
     suspend fun changeGroupRingtone(groupId: Int, ringtoneUri: Uri?): GroupMutationResult
     suspend fun deleteGroup(groupId: Int): GroupMutationResult

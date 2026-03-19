@@ -3,7 +3,6 @@ package de.drvlabs.contactgrouper
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -90,7 +89,6 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(
                         ContactsPermissionEvaluator.evaluate(
                             activity = this,
-                            hasPermission = hasContactsPermission(),
                             hasRequestedPermission = false
                         )
                     )
@@ -99,7 +97,6 @@ class MainActivity : ComponentActivity() {
                 fun refreshPermissionState() {
                     permissionState = ContactsPermissionEvaluator.evaluate(
                         activity = this,
-                        hasPermission = hasContactsPermission(),
                         hasRequestedPermission = hasRequestedPermission
                     )
                 }
@@ -206,8 +203,8 @@ class MainActivity : ComponentActivity() {
                                         contactId = contactId,
                                         contactState = contactState,
                                         groupState = groupState,
-                                        onAssignGroups = { groupIds ->
-                                            groupViewModel.assignContactsToGroups(groupIds, listOf(contactId))
+                                        onSaveGroups = { groupIds ->
+                                            groupViewModel.setContactGroups(contactId, groupIds)
                                         },
                                         onRemoveGroup = { groupId ->
                                             groupViewModel.removeContactFromGroup(groupId, contactId)
@@ -340,16 +337,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun hasContactsPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.READ_CONTACTS
-        ) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_CONTACTS
-            ) == PackageManager.PERMISSION_GRANTED
-    }
 }
 
 @Composable

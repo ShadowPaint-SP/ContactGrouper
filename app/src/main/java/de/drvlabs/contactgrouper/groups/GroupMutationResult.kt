@@ -3,6 +3,7 @@ package de.drvlabs.contactgrouper.groups
 enum class GroupMutationAction {
     CREATE_GROUP,
     ASSIGN_CONTACTS,
+    SET_CONTACT_GROUPS,
     REMOVE_MEMBERSHIP,
     CHANGE_RINGTONE,
     DELETE_GROUP,
@@ -44,6 +45,10 @@ fun GroupMutationResult.userMessage(): String? {
 
             GroupMutationAction.ASSIGN_CONTACTS -> {
                 "The contacts were updated in the app, but device contact syncing failed."
+            }
+
+            GroupMutationAction.SET_CONTACT_GROUPS -> {
+                "The contact's groups were updated in the app, but device contact syncing failed."
             }
 
             GroupMutationAction.REMOVE_MEMBERSHIP -> {
