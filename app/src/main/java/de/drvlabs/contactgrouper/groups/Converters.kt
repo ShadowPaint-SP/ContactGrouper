@@ -34,6 +34,13 @@ class Converters {
 
     @TypeConverter
     fun stringToGroupSyncSource(value: String): GroupSyncSource {
-        return GroupSyncSource.valueOf(value)
+        return GroupSyncSource.entries.firstOrNull { it.name == value } ?: run {
+            GroupSyncDiagnostics.reportFailure(
+                operation = "stringToGroupSyncSource",
+                throwable = IllegalArgumentException("Unknown sync source: $value"),
+                context = mapOf("value" to value)
+            )
+            GroupSyncSource.LOCAL
+        }
     }
 }

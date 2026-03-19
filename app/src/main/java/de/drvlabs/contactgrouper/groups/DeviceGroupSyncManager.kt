@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -24,14 +25,8 @@ class DeviceGroupSyncManager(
     private var scope: CoroutineScope? = null
     private var syncJob: Job? = null
     private var started = false
+    private var observer: ContentObserver? = null
     private val syncMutex = Mutex()
-
-    private val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
-        override fun onChange(selfChange: Boolean) {
-            super.onChange(selfChange)
-            scheduleSync()
-        }
-    }
 
     fun start() {
         if (started) {
@@ -39,15 +34,22 @@ class DeviceGroupSyncManager(
         }
         started = true
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val contentObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                super.onChange(selfChange)
+                scheduleSync()
+            }
+        }
+        observer = contentObserver
         contentResolver.registerContentObserver(
             ContactsContract.Groups.CONTENT_URI,
             true,
-            observer
+            contentObserver
         )
         contentResolver.registerContentObserver(
             ContactsContract.Data.CONTENT_URI,
             true,
-            observer
+            contentObserver
         )
         scheduleSync(immediate = true)
     }
@@ -59,7 +61,8 @@ class DeviceGroupSyncManager(
         started = false
         syncJob?.cancel()
         syncJob = null
-        contentResolver.unregisterContentObserver(observer)
+        observer?.let(contentResolver::unregisterContentObserver)
+        observer = null
         scope?.cancel()
         scope = null
     }
@@ -83,8 +86,26 @@ class DeviceGroupSyncManager(
     }
 
     private suspend fun performSync(): GroupMutationResult {
-        return syncMutex.withLock {
-            repository.syncDeviceGroups(source.loadSnapshot())
+        return try {
+            syncMutex.withLock {
+                repository.syncDeviceGroups(source.loadSnapshot())
+            }
+        } catch (throwable: Throwable) {
+            when (throwable) {
+                is CancellationException -> throw throwable
+                is SecurityException -> GroupMutationResult.PermissionDenied
+                is Exception -> {
+                    GroupSyncDiagnostics.reportFailure(
+                        operation = "performSync",
+                        throwable = throwable
+                    )
+                    GroupMutationResult.ProviderWriteFailed(
+                        GroupMutationAction.SYNC_DEVICE_GROUPS
+                    )
+                }
+
+                else -> throw throwable
+            }
         }
     }
 }
