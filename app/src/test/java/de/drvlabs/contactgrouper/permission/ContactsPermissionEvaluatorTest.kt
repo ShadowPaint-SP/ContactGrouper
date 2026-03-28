@@ -35,6 +35,34 @@ class ContactsPermissionEvaluatorTest {
     }
 
     @Test
+    fun `partial first install permission state is not permanently denied`() {
+        val state = ContactsPermissionEvaluator.evaluate(
+            hasReadPermission = true,
+            hasWritePermission = false,
+            hasRequestedPermission = false,
+            shouldShowReadRationale = false,
+            shouldShowWriteRationale = false
+        )
+
+        assertFalse(state.hasPermission)
+        assertFalse(state.permanentlyDenied)
+    }
+
+    @Test
+    fun `missing permissions stay recoverable while rationale is shown`() {
+        val state = ContactsPermissionEvaluator.evaluate(
+            hasReadPermission = false,
+            hasWritePermission = false,
+            hasRequestedPermission = true,
+            shouldShowReadRationale = true,
+            shouldShowWriteRationale = true
+        )
+
+        assertFalse(state.hasPermission)
+        assertFalse(state.permanentlyDenied)
+    }
+
+    @Test
     fun `read granted and write denied with rationale is not permanent`() {
         val state = ContactsPermissionEvaluator.evaluate(
             hasReadPermission = true,

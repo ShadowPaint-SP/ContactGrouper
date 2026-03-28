@@ -3,9 +3,7 @@ package de.drvlabs.contactgrouper.contacts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import de.drvlabs.contactgrouper.groups.GroupMembership
 import de.drvlabs.contactgrouper.groups.GroupsRepository
-import de.drvlabs.contactgrouper.groups.RingtoneResolution
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -21,25 +19,7 @@ class ContactsViewModel(
         repository.observeGroups(),
         repository.observeMemberships()
     ) { contacts, groups, memberships ->
-        val groupsById = groups.associateBy { it.id }
-        val membershipsByContact = memberships.groupBy { it.contactId }
-
-        val mappedContacts = contacts.map { contact ->
-            val contactMemberships = membershipsByContact[contact.id].orEmpty()
-            val orderedGroupIds = contactMemberships
-                .sortedByDescending(GroupMembership::assignedAt)
-                .map(GroupMembership::groupId)
-                .distinct()
-            val winningMembership =
-                RingtoneResolution.resolveWinningMembership(groupsById, contactMemberships)
-
-            contact.copy(
-                groupIds = orderedGroupIds,
-                effectiveRingtoneGroupId = winningMembership?.group?.id
-            )
-        }
-
-        ContactsListState(contacts = mappedContacts)
+        ContactsStateMapper.build(contacts, groups, memberships)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
