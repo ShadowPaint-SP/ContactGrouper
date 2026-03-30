@@ -12,7 +12,8 @@ import de.drvlabs.contactgrouper.groups.GroupDatabase
 import de.drvlabs.contactgrouper.groups.RoomGroupsRepository
 
 class AppContainer(
-    context: Context
+    context: Context,
+    val appErrorReporter: AppErrorReporter = AppErrorReporter()
 ) {
     private val appContext = context.applicationContext
     private val contentResolver: ContentResolver = appContext.contentResolver
@@ -29,19 +30,24 @@ class AppContainer(
         RoomGroupsRepository(
             database = database,
             ringtoneGateway = AndroidContactRingtoneGateway(contentResolver),
-            deviceGroupWriteGateway = ContactsContractDeviceGroupWriteGateway(contentResolver)
+            deviceGroupWriteGateway = ContactsContractDeviceGroupWriteGateway(contentResolver),
+            appErrorReporter = appErrorReporter
         )
     }
 
     val contactsDataSource: ContactsDataSource by lazy {
-        ContactsDataSource(contentResolver)
+        ContactsDataSource(
+            contentResolver = contentResolver,
+            appErrorReporter = appErrorReporter
+        )
     }
 
     val deviceGroupSyncManager: DeviceGroupSyncManager by lazy {
         DeviceGroupSyncManager(
             contentResolver = contentResolver,
             source = ContactsContractDeviceGroupSource(contentResolver),
-            repository = groupsRepository
+            repository = groupsRepository,
+            appErrorReporter = appErrorReporter
         )
     }
 }

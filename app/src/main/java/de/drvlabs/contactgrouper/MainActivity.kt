@@ -11,7 +11,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,9 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -61,282 +60,349 @@ import de.drvlabs.contactgrouper.permission.ContactsPermissionEvaluator
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
-    private val appContainer by lazy { AppContainer(applicationContext) }
-
-    private val contactsViewModel by viewModels<ContactsViewModel>(
-        factoryProducer = {
-            ContactsViewModel.factory(
-                contactsDataSource = appContainer.contactsDataSource,
-                repository = appContainer.groupsRepository
-            )
-        }
-    )
-
-    private val groupViewModel by viewModels<GroupViewModel>(
-        factoryProducer = {
-            groupFactory(appContainer.groupsRepository)
-        }
-    )
+    companion object {
+        internal var bootstrapOverride: ((MainActivity, AppErrorReporter) -> MainActivityBootstrap)? =
+            null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        val appErrorReporter = AppErrorReporter()
+        val bootstrap = runCatching {
+            val bootstrapper = bootstrapOverride ?: { activity: MainActivity, reporter: AppErrorReporter ->
+                activity.bootstrapApp(reporter)
+            }
+            bootstrapper(this, appErrorReporter)
+        }.getOrElse { throwable ->
+            appErrorReporter.report(
+                AppError.startupFatal(
+                    origin = AppErrorOrigin.Bootstrap,
+                    title = "App Failed to Start",
+                    userMessage = "The app hit an unexpected error during startup.",
+                    throwable = throwable,
+                    heading = "Bootstrapping the app failed."
+                )
+            )
+            null
+        }
+
         setContent {
             AppTheme {
-                val snackbarHostState = remember { SnackbarHostState() }
-                var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
-                var permissionState by remember {
-                    mutableStateOf(
-                        ContactsPermissionEvaluator.evaluate(
-                            activity = this,
-                            hasRequestedPermission = false
-                        )
-                    )
-                }
+                val reporter = bootstrap?.appContainer?.appErrorReporter ?: appErrorReporter
+                val currentError by reporter.currentError.collectAsState()
 
-                fun refreshPermissionState() {
-                    permissionState = ContactsPermissionEvaluator.evaluate(
-                        activity = this,
-                        hasRequestedPermission = hasRequestedPermission
-                    )
-                }
-
-                DisposableEffect(hasRequestedPermission) {
-                    val observer = LifecycleEventObserver { _, event ->
-                        if (event == Lifecycle.Event.ON_RESUME) {
-                            refreshPermissionState()
-                        }
-                    }
-                    lifecycle.addObserver(observer)
-                    onDispose {
-                        lifecycle.removeObserver(observer)
-                    }
-                }
-
-                val permissionLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestMultiplePermissions(),
-                    onResult = {
-                        hasRequestedPermission = true
-                        refreshPermissionState()
-                    }
-                )
-
-                val navController = rememberNavController()
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-
-                val bottomBarRoutes = navbarItems.map { it.route }
-
-                if (permissionState.hasPermission) {
-                    val contactState by contactsViewModel.state.collectAsState()
-                    val groupState by groupViewModel.state.collectAsState()
-
-                    LaunchedEffect(groupViewModel) {
-                        groupViewModel.messages.collect { message ->
-                            snackbarHostState.showSnackbar(message)
-                        }
-                    }
-
-                    DisposableEffect(permissionState.hasPermission) {
-                        appContainer.deviceGroupSyncManager.start()
-                        onDispose {
-                            appContainer.deviceGroupSyncManager.stop()
-                        }
-                    }
-
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        snackbarHost = { SnackbarHost(snackbarHostState) },
-                        bottomBar = {
-                            if (currentRoute in bottomBarRoutes) {
-                                BottomNavigation(navController = navController)
-                            }
-                        }
-                    ) { innerPadding ->
-                        NavHost(
-                            navController = navController,
-                            startDestination = "contacts_graph",
-                            modifier = Modifier.padding(innerPadding),
-                            enterTransition = { fadeIn(animationSpec = tween(400)) },
-                            exitTransition = { fadeOut(animationSpec = tween(400)) }
-                        ) {
-                            navigation(
-                                startDestination = Screen.NavBarScreen.Contacts.route,
-                                route = "contacts_graph"
-                            ) {
-                                composable(Screen.NavBarScreen.Contacts.route) {
-                                    ContactsMainScreen(
-                                        navController = navController,
-                                        state = contactState,
-                                        groups = groupState.groups,
-                                        onAssignContactsToGroups = { groupIds, contactIds ->
-                                            groupViewModel.assignContactsToGroups(groupIds, contactIds)
-                                        }
-                                    )
-                                }
-                                composable(
-                                    route = Screen.ContactDetails.route,
-                                    arguments = listOf(
-                                        navArgument(Screen.ContactDetails.ARG_CONTACT_ID) {
-                                            type = NavType.LongType
-                                        }
-                                    ),
-                                    enterTransition = {
-                                        slideInHorizontally(
-                                            initialOffsetX = { 1000 },
-                                            animationSpec = tween(300)
-                                        )
-                                    },
-                                    exitTransition = {
-                                        slideOutHorizontally(
-                                            targetOffsetX = { 1000 },
-                                            animationSpec = tween(300)
-                                        )
-                                    }
-                                ) { backStackEntry ->
-                                    val contactId = backStackEntry.arguments?.getLong(
-                                        Screen.ContactDetails.ARG_CONTACT_ID
-                                    ) ?: return@composable
-
-                                    ContactDetailScreen(
-                                        navController = navController,
-                                        contactId = contactId,
-                                        contactState = contactState,
-                                        groupState = groupState,
-                                        onSaveGroups = { groupIds ->
-                                            groupViewModel.setContactGroups(contactId, groupIds)
-                                        },
-                                        onRemoveGroup = { groupId ->
-                                            groupViewModel.removeContactFromGroup(groupId, contactId)
-                                        }
-                                    )
-                                }
-                            }
-
-                            navigation(
-                                startDestination = Screen.NavBarScreen.Groups.route,
-                                route = "groups_graph"
-                            ) {
-                                composable(Screen.NavBarScreen.Groups.route) {
-                                    GroupsMainScreen(
-                                        navController = navController,
-                                        contactState = contactState,
-                                        groupState = groupState,
-                                        onRefresh = {
-                                            appContainer.deviceGroupSyncManager.syncNow()
-                                                .userMessage()
-                                                ?.let { snackbarHostState.showSnackbar(it) }
-                                        }
-                                    )
-                                }
-                                composable(
-                                    route = Screen.AddGroup.route,
-                                    enterTransition = {
-                                        slideInHorizontally(
-                                            initialOffsetX = { 1000 },
-                                            animationSpec = tween(300)
-                                        )
-                                    },
-                                    exitTransition = {
-                                        slideOutHorizontally(
-                                            targetOffsetX = { 1000 },
-                                            animationSpec = tween(300)
-                                        )
-                                    }
-                                ) {
-                                    val addGroupViewModel: AddGroupViewModel = viewModel(
-                                        factory = AddGroupViewModel.factory(appContainer.groupsRepository)
-                                    )
-                                    val addGroupState by addGroupViewModel.state.collectAsState()
-
-                                    LaunchedEffect(addGroupViewModel) {
-                                        addGroupViewModel.messages.collect { message ->
-                                            snackbarHostState.showSnackbar(message)
-                                        }
-                                    }
-
-                                    AddGroupScreen(
-                                        navController = navController,
-                                        state = addGroupState,
-                                        onNameChange = addGroupViewModel::setGroupName,
-                                        onRingtoneSelected = addGroupViewModel::setRingtoneUri,
-                                        onCancel = {
-                                            addGroupViewModel.resetDraft()
-                                            navController.popBackStack()
-                                        },
-                                        onSave = { addGroupViewModel.saveGroup() }
-                                    )
-                                }
-                                composable(
-                                    route = Screen.GroupDetails.route,
-                                    arguments = listOf(
-                                        navArgument(Screen.GroupDetails.ARG_GROUP_ID) {
-                                            type = NavType.IntType
-                                        }
-                                    ),
-                                    enterTransition = {
-                                        slideInHorizontally(
-                                            initialOffsetX = { 1000 },
-                                            animationSpec = tween(300)
-                                        )
-                                    },
-                                    exitTransition = {
-                                        slideOutHorizontally(
-                                            targetOffsetX = { 1000 },
-                                            animationSpec = tween(300)
-                                        )
-                                    }
-                                ) { backStackEntry ->
-                                    val groupId = backStackEntry.arguments?.getInt(
-                                        Screen.GroupDetails.ARG_GROUP_ID
-                                    ) ?: return@composable
-
-                                    GroupDetailScreen(
-                                        navController = navController,
-                                        groupId = groupId,
-                                        contactState = contactState,
-                                        groupState = groupState,
-                                        onChangeRingtone = { ringtoneUri ->
-                                            groupViewModel.changeGroupRingtone(groupId, ringtoneUri)
-                                        },
-                                        onDeleteGroup = {
-                                            groupViewModel.deleteGroup(groupId)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                if (bootstrap == null) {
+                    Box(modifier = Modifier.fillMaxSize())
                 } else {
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        snackbarHost = { SnackbarHost(snackbarHostState) }
-                    ) { innerPadding ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding)
-                        )
-                    }
+                    MainActivityContent(
+                        activity = this,
+                        bootstrap = bootstrap,
+                        currentError = currentError
+                    )
                 }
 
-                if (!permissionState.hasPermission) {
-                    PermissionDialog(
-                        permanentlyDenied = permissionState.permanentlyDenied,
-                        onRequestPermission = {
-                            permissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.READ_CONTACTS,
-                                    Manifest.permission.WRITE_CONTACTS
-                                )
-                            )
-                        }
+                currentError?.let { error ->
+                    AppErrorDialog(
+                        error = error,
+                        onDismiss = reporter::clearCurrent,
+                        onCloseApp = ::finishAffinity
                     )
                 }
             }
         }
     }
 
+    private fun bootstrapApp(appErrorReporter: AppErrorReporter): MainActivityBootstrap {
+        val appContainer = AppContainer(
+            context = applicationContext,
+            appErrorReporter = appErrorReporter
+        )
+        val contactsViewModel = ViewModelProvider(
+            this,
+            ContactsViewModel.factory(
+                contactsDataSource = appContainer.contactsDataSource,
+                repository = appContainer.groupsRepository
+            )
+        )[ContactsViewModel::class.java]
+        val groupViewModel = ViewModelProvider(
+            this,
+            groupFactory(appContainer.groupsRepository)
+        )[GroupViewModel::class.java]
+
+        return MainActivityBootstrap(
+            appContainer = appContainer,
+            contactsViewModel = contactsViewModel,
+            groupViewModel = groupViewModel
+        )
+    }
+}
+
+internal data class MainActivityBootstrap(
+    val appContainer: AppContainer,
+    val contactsViewModel: ContactsViewModel,
+    val groupViewModel: GroupViewModel
+)
+
+@Composable
+private fun MainActivityContent(
+    activity: MainActivity,
+    bootstrap: MainActivityBootstrap,
+    currentError: AppError?
+) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    var hasRequestedPermission by rememberSaveable { mutableStateOf(false) }
+    var permissionState by remember {
+        mutableStateOf(
+            ContactsPermissionEvaluator.evaluate(
+                activity = activity,
+                hasRequestedPermission = false
+            )
+        )
+    }
+
+    fun refreshPermissionState() {
+        permissionState = ContactsPermissionEvaluator.evaluate(
+            activity = activity,
+            hasRequestedPermission = hasRequestedPermission
+        )
+    }
+
+    DisposableEffect(hasRequestedPermission) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshPermissionState()
+            }
+        }
+        activity.lifecycle.addObserver(observer)
+        onDispose {
+            activity.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = {
+            hasRequestedPermission = true
+            refreshPermissionState()
+        }
+    )
+
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val bottomBarRoutes = navbarItems.map { it.route }
+
+    if (permissionState.hasPermission) {
+        val contactsViewModel = bootstrap.contactsViewModel
+        val groupViewModel = bootstrap.groupViewModel
+        val appContainer = bootstrap.appContainer
+        val contactState by contactsViewModel.state.collectAsState()
+        val groupState by groupViewModel.state.collectAsState()
+
+        LaunchedEffect(groupViewModel) {
+            groupViewModel.messages.collect { message ->
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+
+        DisposableEffect(permissionState.hasPermission) {
+            appContainer.deviceGroupSyncManager.start()
+            onDispose {
+                appContainer.deviceGroupSyncManager.stop()
+            }
+        }
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                if (currentRoute in bottomBarRoutes) {
+                    BottomNavigation(navController = navController)
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = "contacts_graph",
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = { fadeIn(animationSpec = tween(400)) },
+                exitTransition = { fadeOut(animationSpec = tween(400)) }
+            ) {
+                navigation(
+                    startDestination = Screen.NavBarScreen.Contacts.route,
+                    route = "contacts_graph"
+                ) {
+                    composable(Screen.NavBarScreen.Contacts.route) {
+                        ContactsMainScreen(
+                            navController = navController,
+                            state = contactState,
+                            groups = groupState.groups,
+                            onAssignContactsToGroups = { groupIds, contactIds ->
+                                groupViewModel.assignContactsToGroups(groupIds, contactIds)
+                            }
+                        )
+                    }
+                    composable(
+                        route = Screen.ContactDetails.route,
+                        arguments = listOf(
+                            navArgument(Screen.ContactDetails.ARG_CONTACT_ID) {
+                                type = NavType.LongType
+                            }
+                        ),
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { 1000 },
+                                animationSpec = tween(300)
+                            )
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { 1000 },
+                                animationSpec = tween(300)
+                            )
+                        }
+                    ) { backStackEntry ->
+                        val contactId = backStackEntry.arguments?.getLong(
+                            Screen.ContactDetails.ARG_CONTACT_ID
+                        ) ?: return@composable
+
+                        ContactDetailScreen(
+                            navController = navController,
+                            contactId = contactId,
+                            contactState = contactState,
+                            groupState = groupState,
+                            onSaveGroups = { groupIds ->
+                                groupViewModel.setContactGroups(contactId, groupIds)
+                            },
+                            onRemoveGroup = { groupId ->
+                                groupViewModel.removeContactFromGroup(groupId, contactId)
+                            }
+                        )
+                    }
+                }
+
+                navigation(
+                    startDestination = Screen.NavBarScreen.Groups.route,
+                    route = "groups_graph"
+                ) {
+                    composable(Screen.NavBarScreen.Groups.route) {
+                        GroupsMainScreen(
+                            navController = navController,
+                            contactState = contactState,
+                            groupState = groupState,
+                            onRefresh = {
+                                appContainer.deviceGroupSyncManager.syncNow()
+                                    .userMessage()
+                                    ?.let { snackbarHostState.showSnackbar(it) }
+                            }
+                        )
+                    }
+                    composable(
+                        route = Screen.AddGroup.route,
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { 1000 },
+                                animationSpec = tween(300)
+                            )
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { 1000 },
+                                animationSpec = tween(300)
+                            )
+                        }
+                    ) {
+                        val addGroupViewModel: AddGroupViewModel = viewModel(
+                            factory = AddGroupViewModel.factory(appContainer.groupsRepository)
+                        )
+                        val addGroupState by addGroupViewModel.state.collectAsState()
+
+                        LaunchedEffect(addGroupViewModel) {
+                            addGroupViewModel.messages.collect { message ->
+                                snackbarHostState.showSnackbar(message)
+                            }
+                        }
+
+                        AddGroupScreen(
+                            navController = navController,
+                            state = addGroupState,
+                            onNameChange = addGroupViewModel::setGroupName,
+                            onRingtoneSelected = addGroupViewModel::setRingtoneUri,
+                            onCancel = {
+                                addGroupViewModel.resetDraft()
+                                navController.popBackStack()
+                            },
+                            onSave = { addGroupViewModel.saveGroup() }
+                        )
+                    }
+                    composable(
+                        route = Screen.GroupDetails.route,
+                        arguments = listOf(
+                            navArgument(Screen.GroupDetails.ARG_GROUP_ID) {
+                                type = NavType.IntType
+                            }
+                        ),
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { 1000 },
+                                animationSpec = tween(300)
+                            )
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { 1000 },
+                                animationSpec = tween(300)
+                            )
+                        }
+                    ) { backStackEntry ->
+                        val groupId = backStackEntry.arguments?.getInt(
+                            Screen.GroupDetails.ARG_GROUP_ID
+                        ) ?: return@composable
+
+                        GroupDetailScreen(
+                            navController = navController,
+                            groupId = groupId,
+                            contactState = contactState,
+                            groupState = groupState,
+                            onChangeRingtone = { ringtoneUri ->
+                                groupViewModel.changeGroupRingtone(groupId, ringtoneUri)
+                            },
+                            onDeleteGroup = {
+                                groupViewModel.deleteGroup(groupId)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            )
+        }
+    }
+
+    if (!permissionState.hasPermission && currentError?.kind != AppErrorKind.StartupFatal) {
+        PermissionDialog(
+            permanentlyDenied = permissionState.permanentlyDenied,
+            onRequestPermission = {
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.READ_CONTACTS,
+                        Manifest.permission.WRITE_CONTACTS
+                    )
+                )
+            }
+        )
+    }
 }
 
 @Composable

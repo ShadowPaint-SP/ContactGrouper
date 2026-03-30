@@ -5,6 +5,10 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
+import de.drvlabs.contactgrouper.AppError
+import de.drvlabs.contactgrouper.AppErrorKind
+import de.drvlabs.contactgrouper.AppErrorOrigin
+import de.drvlabs.contactgrouper.AppErrorReporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +24,31 @@ import kotlinx.coroutines.withContext
 class DeviceGroupSyncManager(
     private val contentResolver: ContentResolver,
     private val source: DeviceGroupSource,
-    private val repository: GroupsRepository
+    private val repository: GroupsRepository,
+    private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
+    private val contentObserverFactory: (() -> Unit) -> ContentObserver = { onChange ->
+        object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                super.onChange(selfChange)
+                onChange()
+            }
+        }
+    },
+    private val registerObservers: (ContentObserver) -> Unit = { observer ->
+        contentResolver.registerContentObserver(
+            ContactsContract.Groups.CONTENT_URI,
+            true,
+            observer
+        )
+        contentResolver.registerContentObserver(
+            ContactsContract.Data.CONTENT_URI,
+            true,
+            observer
+        )
+    },
+    private val unregisterObserver: (ContentObserver) -> Unit = { observer ->
+        contentResolver.unregisterContentObserver(observer)
+    }
 ) {
     private var scope: CoroutineScope? = null
     private var syncJob: Job? = null
@@ -34,24 +62,20 @@ class DeviceGroupSyncManager(
         }
         started = true
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val contentObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean) {
-                super.onChange(selfChange)
-                scheduleSync()
-            }
+        val contentObserver = contentObserverFactory {
+            scheduleSync()
         }
         observer = contentObserver
-        contentResolver.registerContentObserver(
-            ContactsContract.Groups.CONTENT_URI,
-            true,
-            contentObserver
-        )
-        contentResolver.registerContentObserver(
-            ContactsContract.Data.CONTENT_URI,
-            true,
-            contentObserver
-        )
-        scheduleSync(immediate = true)
+        try {
+            registerObservers(contentObserver)
+            scheduleSync(immediate = true, errorKind = AppErrorKind.StartupFatal)
+        } catch (throwable: Throwable) {
+            reportSyncFailure(
+                throwable = throwable,
+                errorKind = AppErrorKind.StartupFatal,
+                operation = "registerObservers"
+            )
+        }
     }
 
     fun stop() {
@@ -61,7 +85,11 @@ class DeviceGroupSyncManager(
         started = false
         syncJob?.cancel()
         syncJob = null
-        observer?.let(contentResolver::unregisterContentObserver)
+        observer?.let {
+            runCatching {
+                unregisterObserver(it)
+            }
+        }
         observer = null
         scope?.cancel()
         scope = null
@@ -70,22 +98,34 @@ class DeviceGroupSyncManager(
     suspend fun syncNow(): GroupMutationResult {
         syncJob?.cancel()
         return withContext(Dispatchers.IO) {
-            performSync()
+            performSync(
+                errorKind = AppErrorKind.RuntimeUnexpected,
+                operation = "manualSync"
+            )
         }
     }
 
-    private fun scheduleSync(immediate: Boolean = false) {
+    private fun scheduleSync(
+        immediate: Boolean = false,
+        errorKind: AppErrorKind = AppErrorKind.RuntimeUnexpected
+    ) {
         val activeScope = scope ?: return
         syncJob?.cancel()
         syncJob = activeScope.launch {
             if (!immediate) {
                 delay(400)
             }
-            performSync()
+            performSync(
+                errorKind = errorKind,
+                operation = if (immediate) "startupSync" else "observerSync"
+            )
         }
     }
 
-    private suspend fun performSync(): GroupMutationResult {
+    private suspend fun performSync(
+        errorKind: AppErrorKind,
+        operation: String
+    ): GroupMutationResult {
         return try {
             syncMutex.withLock {
                 repository.syncDeviceGroups(source.loadSnapshot())
@@ -93,12 +133,16 @@ class DeviceGroupSyncManager(
         } catch (throwable: Throwable) {
             when (throwable) {
                 is CancellationException -> throw throwable
-                is SecurityException -> GroupMutationResult.PermissionDenied
+                is SecurityException -> {
+                    reportSyncFailure(throwable, errorKind, operation)
+                    GroupMutationResult.PermissionDenied
+                }
                 is Exception -> {
                     GroupSyncDiagnostics.reportFailure(
-                        operation = "performSync",
+                        operation = operation,
                         throwable = throwable
                     )
+                    reportSyncFailure(throwable, errorKind, operation)
                     GroupMutationResult.ProviderWriteFailed(
                         GroupMutationAction.SYNC_DEVICE_GROUPS
                     )
@@ -107,5 +151,33 @@ class DeviceGroupSyncManager(
                 else -> throw throwable
             }
         }
+    }
+
+    private fun reportSyncFailure(
+        throwable: Throwable,
+        errorKind: AppErrorKind,
+        operation: String
+    ) {
+        val error = when (errorKind) {
+            AppErrorKind.StartupFatal -> AppError.startupFatal(
+                origin = AppErrorOrigin.DeviceGroupSync,
+                title = "App Failed to Start",
+                userMessage = "The app could not import contact groups during startup.",
+                throwable = throwable,
+                heading = "Loading contact groups failed during startup.",
+                context = mapOf("operation" to operation)
+            )
+
+            AppErrorKind.RuntimeUnexpected -> AppError.runtimeUnexpected(
+                origin = AppErrorOrigin.DeviceGroupSync,
+                title = "Contact Group Sync Failed",
+                userMessage = "Refreshing contact groups failed unexpectedly.",
+                throwable = throwable,
+                heading = "Refreshing contact groups failed unexpectedly.",
+                context = mapOf("operation" to operation)
+            )
+        }
+
+        appErrorReporter.report(error)
     }
 }

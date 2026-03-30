@@ -3,6 +3,9 @@ package de.drvlabs.contactgrouper.groups
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.room.withTransaction
+import de.drvlabs.contactgrouper.AppError
+import de.drvlabs.contactgrouper.AppErrorOrigin
+import de.drvlabs.contactgrouper.AppErrorReporter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlin.random.Random
@@ -11,6 +14,7 @@ class RoomGroupsRepository(
     private val database: GroupDatabase,
     private val ringtoneGateway: ContactRingtoneGateway,
     private val deviceGroupWriteGateway: DeviceGroupWriteGateway,
+    private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) : GroupsRepository {
 
@@ -608,13 +612,17 @@ class RoomGroupsRepository(
         } catch (throwable: Throwable) {
             when (throwable) {
                 is CancellationException -> throw throwable
-                is SecurityException -> GroupMutationResult.PermissionDenied
+                is SecurityException -> {
+                    reportUnexpectedMutationFailure(throwable, providerFailureAction)
+                    GroupMutationResult.PermissionDenied
+                }
                 is Exception -> {
                     GroupSyncDiagnostics.reportFailure(
                         operation = "runMutation",
                         throwable = throwable,
                         context = mapOf("action" to providerFailureAction)
                     )
+                    reportUnexpectedMutationFailure(throwable, providerFailureAction)
                     providerFailureAction?.let(GroupMutationResult::ProviderWriteFailed)
                         ?: GroupMutationResult.InvalidRequest
                 }
@@ -622,5 +630,21 @@ class RoomGroupsRepository(
                 else -> throw throwable
             }
         }
+    }
+
+    private fun reportUnexpectedMutationFailure(
+        throwable: Throwable,
+        action: GroupMutationAction?
+    ) {
+        appErrorReporter.report(
+            AppError.runtimeUnexpected(
+                origin = AppErrorOrigin.GroupMutation,
+                title = "Unexpected Error",
+                userMessage = "The app hit an unexpected error while updating contact groups.",
+                throwable = throwable,
+                heading = "Updating contact groups failed unexpectedly.",
+                context = mapOf("action" to action)
+            )
+        )
     }
 }

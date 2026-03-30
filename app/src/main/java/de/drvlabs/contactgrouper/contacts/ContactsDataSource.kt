@@ -5,6 +5,11 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.ContactsContract
+import de.drvlabs.contactgrouper.AppError
+import de.drvlabs.contactgrouper.AppErrorOrigin
+import de.drvlabs.contactgrouper.AppErrorReporter
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -17,41 +22,112 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 
 class ContactsDataSource(
-    private val contentResolver: ContentResolver
+    private val contentResolver: ContentResolver,
+    private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
+    private val debounceMillis: Long = 300L,
+    private val contactsLoader: (() -> List<Contact>)? = null,
+    private val contentObserverFactory: (() -> Unit) -> ContentObserver = { onChange ->
+        object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                super.onChange(selfChange)
+                onChange()
+            }
+        }
+    },
+    private val registerObservers: (ContentObserver) -> Unit = { observer ->
+        contentResolver.registerContentObserver(
+            ContactsContract.Contacts.CONTENT_URI,
+            true,
+            observer
+        )
+        contentResolver.registerContentObserver(
+            ContactsContract.Data.CONTENT_URI,
+            true,
+            observer
+        )
+    },
+    private val unregisterObservers: (ContentObserver) -> Unit = { observer ->
+        contentResolver.unregisterContentObserver(observer)
+    }
 ) {
+    private val initialLoadSucceeded = AtomicBoolean(false)
+
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     fun observeContacts(): Flow<List<Contact>> {
         return callbackFlow {
-            val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
-                override fun onChange(selfChange: Boolean) {
-                    super.onChange(selfChange)
-                    trySend(Unit)
-                }
+            val observer = contentObserverFactory {
+                trySend(Unit)
             }
 
             trySend(Unit)
-            contentResolver.registerContentObserver(
-                ContactsContract.Contacts.CONTENT_URI,
-                true,
-                observer
-            )
-            contentResolver.registerContentObserver(
-                ContactsContract.Data.CONTENT_URI,
-                true,
-                observer
-            )
+            try {
+                registerObservers(observer)
+            } catch (throwable: Throwable) {
+                handleLoadFailure(
+                    throwable = throwable,
+                    operation = "registerObservers"
+                )
+            }
 
             awaitClose {
-                contentResolver.unregisterContentObserver(observer)
+                runCatching {
+                    unregisterObservers(observer)
+                }
             }
         }
             .conflate()
-            .debounce(300)
+            .debounce(debounceMillis)
             .mapLatest {
                 withContext(Dispatchers.IO) {
-                    fetchDetailedContacts()
+                    try {
+                        (contactsLoader ?: ::fetchDetailedContacts).invoke().also {
+                            initialLoadSucceeded.set(true)
+                        }
+                    } catch (throwable: Throwable) {
+                        handleLoadFailure(
+                            throwable = throwable,
+                            operation = "fetchDetailedContacts"
+                        )
+                        emptyList()
+                    }
                 }
             }
+    }
+
+    private fun handleLoadFailure(
+        throwable: Throwable,
+        operation: String
+    ) {
+        when (throwable) {
+            is CancellationException -> throw throwable
+            is SecurityException,
+            is Exception -> {
+                val isStartupFailure = !initialLoadSucceeded.get()
+                appErrorReporter.report(
+                    if (isStartupFailure) {
+                        AppError.startupFatal(
+                            origin = AppErrorOrigin.ContactsImport,
+                            title = "App Failed to Start",
+                            userMessage = "The app could not load your contacts during startup.",
+                            throwable = throwable,
+                            heading = "Loading contacts failed during startup.",
+                            context = mapOf("operation" to operation)
+                        )
+                    } else {
+                        AppError.runtimeUnexpected(
+                            origin = AppErrorOrigin.ContactsImport,
+                            title = "Contacts Refresh Failed",
+                            userMessage = "Refreshing contacts failed unexpectedly. The current list may be out of date.",
+                            throwable = throwable,
+                            heading = "Refreshing contacts failed unexpectedly.",
+                            context = mapOf("operation" to operation)
+                        )
+                    }
+                )
+            }
+
+            else -> throw throwable
+        }
     }
 
     private fun fetchDetailedContacts(): List<Contact> {

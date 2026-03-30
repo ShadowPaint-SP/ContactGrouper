@@ -1,10 +1,15 @@
 package de.drvlabs.contactgrouper.groups
 
 import android.content.ContentResolver
+import android.database.ContentObserver
+import de.drvlabs.contactgrouper.AppErrorKind
+import de.drvlabs.contactgrouper.AppErrorOrigin
+import de.drvlabs.contactgrouper.AppErrorReporter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DeviceGroupSyncManagerTest {
@@ -59,6 +64,42 @@ class DeviceGroupSyncManagerTest {
         assertEquals(
             GroupMutationResult.ProviderWriteFailed(GroupMutationAction.SYNC_DEVICE_GROUPS),
             syncManager.syncNow()
+        )
+    }
+
+    @Test
+    fun `start reports startup fatal error when immediate sync throws`() {
+        val reporter = AppErrorReporter()
+        val syncManager = DeviceGroupSyncManager(
+            contentResolver = noOpContentResolver(),
+            source = object : DeviceGroupSource {
+                override suspend fun loadSnapshot(): DeviceGroupSnapshot {
+                    throw IllegalStateException("startup sync exploded")
+                }
+            },
+            repository = FakeGroupsRepository(),
+            appErrorReporter = reporter,
+            contentObserverFactory = { onChange ->
+                object : ContentObserver(null) {
+                    override fun onChange(selfChange: Boolean) {
+                        super.onChange(selfChange)
+                        onChange()
+                    }
+                }
+            },
+            registerObservers = {},
+            unregisterObserver = {}
+        )
+
+        syncManager.start()
+
+        waitForError(reporter)
+        syncManager.stop()
+
+        assertEquals(AppErrorKind.StartupFatal, reporter.currentError.value?.kind)
+        assertEquals(AppErrorOrigin.DeviceGroupSync, reporter.currentError.value?.origin)
+        assertTrue(
+            reporter.currentError.value?.technicalDetails?.contains("startup sync exploded") == true
         )
     }
 
@@ -117,5 +158,15 @@ class DeviceGroupSyncManagerTest {
     private fun noOpContentResolver(): ContentResolver {
         return object : ContentResolver(null) {
         }
+    }
+
+    private fun waitForError(reporter: AppErrorReporter) {
+        repeat(50) {
+            if (reporter.currentError.value != null) {
+                return
+            }
+            Thread.sleep(20)
+        }
+        error("Timed out waiting for app error to be reported")
     }
 }
