@@ -27,7 +27,12 @@ class AppErrorReporterTest {
 
     @Test
     fun `runtime unexpected error is dismissible through reporter clear`() {
-        val reporter = AppErrorReporter()
+        val recordedErrors = mutableListOf<AppError>()
+        val reporter = AppErrorReporter(
+            logSink = AppErrorLogSink { error ->
+                recordedErrors += error
+            }
+        )
 
         reporter.report(
             AppError.runtimeUnexpected(
@@ -38,6 +43,7 @@ class AppErrorReporterTest {
         )
 
         assertEquals(AppErrorKind.RuntimeUnexpected, reporter.currentError.value?.kind)
+        assertEquals(1, recordedErrors.size)
 
         reporter.clearCurrent()
 
