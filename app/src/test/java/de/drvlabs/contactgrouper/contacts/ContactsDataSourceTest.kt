@@ -42,4 +42,14 @@ class ContactsDataSourceTest {
             assertEquals(AppErrorOrigin.ContactsImport, error?.origin)
             assertTrue(error?.technicalDetails?.contains("contacts provider down") == true)
         }
+
+    @Test
+    fun `resolveContactDisplayName falls back to display name when primary display name is null`() {
+        assertEquals("Fallback Name", resolveContactDisplayName(null, "Fallback Name"))
+    }
+
+    @Test
+    fun `resolveContactDisplayName uses placeholder when all display names are null or blank`() {
+        assertEquals("Null Named", resolveContactDisplayName("   ", null))
+    }
 }

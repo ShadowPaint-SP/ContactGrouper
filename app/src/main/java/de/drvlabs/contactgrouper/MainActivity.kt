@@ -69,7 +69,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val appErrorReporter = AppErrorReporter()
+        val appErrorReporter = AppErrorReporter(
+            logSink = AppErrorFileLogStore(applicationContext)
+        )
         val bootstrap = runCatching {
             val bootstrapper = bootstrapOverride ?: { activity: MainActivity, reporter: AppErrorReporter ->
                 activity.bootstrapApp(reporter)

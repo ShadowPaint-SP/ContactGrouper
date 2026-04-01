@@ -136,6 +136,7 @@ class ContactsDataSource(
         val contactProjection = arrayOf(
             ContactsContract.Contacts._ID,
             ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+            ContactsContract.Contacts.DISPLAY_NAME,
             ContactsContract.Contacts.PHOTO_URI,
             ContactsContract.Contacts.PHOTO_THUMBNAIL_URI,
             ContactsContract.Contacts.CUSTOM_RINGTONE
@@ -149,8 +150,10 @@ class ContactsDataSource(
             "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC"
         )?.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID)
-            val nameIndex =
+            val primaryNameIndex =
                 cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
+            val displayNameIndex =
+                cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME)
             val photoIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_URI)
             val thumbnailIndex =
                 cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_THUMBNAIL_URI)
@@ -161,7 +164,10 @@ class ContactsDataSource(
                 val id = cursor.getLong(idIndex)
                 contactMap[id] = Contact(
                     id = id,
-                    displayName = cursor.getString(nameIndex),
+                    displayName = resolveContactDisplayName(
+                        primaryName = cursor.getString(primaryNameIndex),
+                        displayName = cursor.getString(displayNameIndex)
+                    ),
                     photoUri = cursor.getString(photoIndex),
                     thumbnailUri = cursor.getString(thumbnailIndex),
                     customRingtone = cursor.getString(ringtoneIndex)
@@ -245,4 +251,19 @@ class ContactsDataSource(
 
         return contactMap.values.toList()
     }
+}
+
+internal fun resolveContactDisplayName(
+    primaryName: String?,
+    displayName: String?
+): String {
+    return primaryName.toTrimmedStringOrNull()
+        ?: displayName.toTrimmedStringOrNull()
+        ?: "Null Named"
+}
+
+private fun String?.toTrimmedStringOrNull(): String? {
+    return this
+        ?.trim()
+        ?.takeUnless { it.isEmpty() }
 }
