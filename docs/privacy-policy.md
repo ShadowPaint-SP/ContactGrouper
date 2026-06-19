@@ -8,9 +8,9 @@ Diese Datenschutzerklaerung beschreibt, wie die Android-App **ContactGrouper** m
 
 Verantwortlich fuer die Datenverarbeitung ist:
 
-**Richard Voigtmann**  
+**DRVLabs**  
 Anschrift auf Anfrage per E-Mail  
-E-Mail: **richard.v.voigtmann@gmail.com**
+E-Mail: **support@drvlabs.de**
 
 ## 2. Kurzfassung
 
