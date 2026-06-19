@@ -1,151 +1,252 @@
-# Datenschutzerklaerung fuer ContactGrouper
+# ContactGrouper Privacy Policy
 
-Stand: 19. Juni 2026
+Last updated: June 19, 2026
 
-Diese Datenschutzerklaerung beschreibt, wie die Android-App **ContactGrouper** mit personenbezogenen Daten umgeht.
+ContactGrouper ("ContactGrouper," "we," "our," or "us") respects your privacy. This Privacy Policy explains how information is handled when you use the ContactGrouper Android application (the "App").
 
-## 1. Verantwortlicher
+The App is designed to organize contacts and contact groups directly on your Android device. The App does not require an account, does not operate its own backend service for App data, and does not sell personal information.
 
-Verantwortlich fuer die Datenverarbeitung ist:
+If you do not agree with this Privacy Policy, please do not use the App.
 
-**DRVLabs**  
-Anschrift auf Anfrage per E-Mail  
-E-Mail: **support@drvlabs.de**
+To go directly to a section of interest, please use the section list below:
 
-## 2. Kurzfassung
+1. [Scope and Applicability](#1-scope-and-applicability)
+2. [Personal Information That the App Processes](#2-personal-information-that-the-app-processes)
+3. [Why the App Processes Personal Information](#3-why-the-app-processes-personal-information)
+4. [How Personal Information Is Disclosed](#4-how-personal-information-is-disclosed)
+5. [Your Choices](#5-your-choices)
+6. [Your Privacy Rights](#6-your-privacy-rights)
+7. [Security](#7-security)
+8. [Transfers and Device Backups](#8-transfers-and-device-backups)
+9. [Retention](#9-retention)
+10. [Children](#10-children)
+11. [Additional Notice for Users in the United States](#11-additional-notice-for-users-in-the-united-states)
+12. [Additional Notice for California Residents](#12-additional-notice-for-california-residents)
+13. [Additional Notice for Users in the European Economic Area, United Kingdom, and Switzerland](#13-additional-notice-for-users-in-the-european-economic-area-united-kingdom-and-switzerland)
+14. [Changes to This Privacy Policy](#14-changes-to-this-privacy-policy)
+15. [Contact Us](#15-contact-us)
 
-ContactGrouper hilft dabei, Kontakte auf dem Geraet in Gruppen zu organisieren und optional gruppenbasierte Klingeltoene anzuwenden.
+---
 
-Die App verarbeitet Kontaktdaten ausschliesslich lokal auf dem Geraet. Nach aktuellem Funktionsumfang betreiben wir keine eigenen Server fuer diese App und uebertragen keine Kontaktdaten, Gruppen, Telefonnummern, E-Mail-Adressen oder Adressen an uns oder an Dritte.
+## 1. Scope and Applicability
 
-Die App enthaelt keine Werbung, kein Nutzertracking, keine Analyse-SDKs und kein eigenes Crash-Reporting-SDK.
+This Privacy Policy applies to the ContactGrouper Android application and to information processed through the App.
 
-## 3. Welche Daten verarbeitet die App?
+This Privacy Policy does not apply to privacy practices of third parties that we do not own or control, including Google, Android, device manufacturers, mobile network providers, contact account providers, email providers, cloud backup providers, or any other services that you use independently of the App.
 
-Die App kann folgende Daten aus dem Android-Kontaktspeicher lesen und anzeigen:
+The App works with the Android contacts system on your device. If your contacts are also synchronized through a Google account, Exchange account, device manufacturer account, or another contact provider, that synchronization is controlled by your device settings and the relevant third-party service, not by ContactGrouper.
 
-- Anzeigename des Kontakts
-- Telefonnummern
-- E-Mail-Adressen
-- Postadressen
-- Kontaktfoto- oder Vorschaubild-URI
-- vorhandener individueller Klingelton
-- Android-Kontakt-ID
-- bestehende Kontaktgruppen und Gruppenzugehoerigkeiten
+## 2. Personal Information That the App Processes
 
-Die App kann ausserdem lokal speichern:
+The App may process information stored in the Android contacts database on your device. Depending on the information contained in your contacts, this may include:
 
-- selbst angelegte oder synchronisierte Gruppen
-- Gruppennamen
-- Gruppenfarben
-- zugeordnete Kontakt-IDs
-- ausgewaehlte Klingelton-URIs
-- technische Zuordnungsdaten, die fuer die Synchronisierung mit dem lokalen Android-Kontaktspeicher erforderlich sind
+1. **Contact information**
 
-## 4. Wofuer werden diese Daten verwendet?
+   The App may read and display contact names, phone numbers, email addresses, postal addresses, contact photo references, contact thumbnail references, contact IDs, custom ringtone references, existing contact groups, and group memberships.
 
-Die Daten werden verwendet, um:
+2. **Group and organization information**
 
-- Kontakte in der App anzuzeigen
-- Kontakte Gruppen zuzuordnen
-- Kontaktgruppen lokal auf dem Geraet zu erstellen, zu bearbeiten oder zu loeschen
-- Gruppenzugehoerigkeiten mit dem Android-Kontaktspeicher abzugleichen
-- optional individuelle Klingeltoene fuer Kontakte anzuwenden
-- die App-Funktionalitaet lokal bereitzustellen
+   The App may create, display, update, and store contact groups, group names, group colors, group memberships, selected ringtone references, and technical identifiers required to match App groups with Android contact groups.
 
-Die Daten werden nicht fuer Werbung, Profilbildung, Tracking oder Verkauf verwendet.
+3. **Ringtone information**
 
-## 5. Berechtigungen
+   If you use ringtone features, the App may process ringtone URI references and may update the custom ringtone field of selected contacts through the Android contacts provider.
 
-Die App fordert folgende Android-Berechtigungen an:
+4. **Support information**
 
-- **Kontakte lesen (`READ_CONTACTS`)**: erforderlich, um Kontakte, Kontaktdetails und bestehende Gruppen anzuzeigen.
-- **Kontakte schreiben (`WRITE_CONTACTS`)**: erforderlich, um Gruppen, Gruppenzuordnungen und optionale Klingeltonzuordnungen im lokalen Android-Kontaktspeicher zu bearbeiten.
+   If you contact support by email, we may receive the information you choose to include in your message, such as your email address, device details, screenshots, logs, descriptions of issues, or other information you voluntarily provide.
 
-Ohne diese Berechtigungen kann die Kernfunktion der App nicht bereitgestellt werden.
+5. **Crash and diagnostic information from Google Play**
 
-## 6. Rechtsgrundlage
+   If you installed the App from Google Play and your device settings allow diagnostic reporting to Google, Google may provide Android vitals information such as crash reports, ANRs, app version, Android version, device model, and stack traces. The App does not include its own crash-reporting SDK.
 
-Soweit die Datenschutz-Grundverordnung (DSGVO) anwendbar ist, erfolgt die Verarbeitung der Kontaktdaten zur Bereitstellung der von Ihnen gewuenschten App-Funktionen auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO. Soweit eine Einwilligung des Betriebssystems erforderlich ist, erfolgt der Zugriff zusaetzlich nur nach Erteilung der entsprechenden Android-Berechtigung.
+The App does not intentionally collect account login credentials, payment information, advertising identifiers, precise location, browsing history, or contact data for advertising or profiling purposes.
 
-## 7. Lokale Speicherung und Aufbewahrung
+## 3. Why the App Processes Personal Information
 
-Die App speichert App-Daten lokal auf dem Geraet. Dazu gehoeren insbesondere Gruppen, Gruppenzuordnungen und Klingeltoninformationen.
+The App processes information for the following purposes:
 
-Die Daten bleiben gespeichert, bis sie in der App geloescht werden, die betreffenden Kontakte oder Gruppen im Android-Kontaktspeicher geaendert oder geloescht werden, oder die App-Daten beziehungsweise die App vom Geraet entfernt werden.
+1. **Operate and provide the App**
 
-## 8. Android-Backup und Geraeteuebertragung
+   The App reads contact data so that it can display contacts, display contact details, display existing groups, and provide contact organization features.
 
-Je nach Android- und Google-Konto-Einstellungen des Nutzers koennen lokale App-Daten durch Android-Systemfunktionen gesichert oder auf ein neues Geraet uebertragen werden. Diese Sicherung wird vom Betriebssystem beziehungsweise von Google bereitgestellt und nicht von uns als eigenem App-Server betrieben.
+2. **Manage contact groups**
 
-Wenn Sie dies verhindern moechten, deaktivieren Sie Android-Backups in den Systemeinstellungen oder loeschen Sie die App-Daten vor einer Sicherung beziehungsweise Geraeteuebertragung.
+   The App uses contact IDs and group identifiers to add contacts to groups, remove contacts from groups, create groups, update groups, and synchronize group membership with the Android contacts provider.
 
-## 9. Weitergabe von Daten
+3. **Apply ringtone settings**
 
-Wir geben keine Kontaktdaten, Gruppeninformationen oder sonstigen in der App verarbeiteten personenbezogenen Daten an Dritte weiter.
+   If you choose to use ringtone features, the App uses selected group and ringtone information to apply or clear contact ringtone settings.
 
-Eine Uebermittlung kann nur stattfinden, wenn:
+4. **Maintain local App state**
 
-- das Android-Betriebssystem oder ein vom Nutzer eingerichtetes Kontaktkonto die Kontakte selbst synchronisiert,
-- Android-Backup oder eine Geraeteuebertragung durch den Nutzer aktiviert ist,
-- der Nutzer Daten ausserhalb der App selbst exportiert, teilt oder synchronisiert,
-- wir gesetzlich zu einer Auskunft verpflichtet waeren.
+   The App stores local group and membership data to remember how contacts are organized within the App and to keep the App state consistent across sessions.
 
-## 10. Drittanbieter, Werbung und Analyse
+5. **Provide customer support**
 
-Die App enthaelt nach aktuellem Stand:
+   If you contact support, information you provide is used to respond to your request, investigate issues, and improve the App.
 
-- keine Werbung
-- keine Analyse- oder Tracking-SDKs
-- keine Social-Media-SDKs
-- kein eigenes Crash-Reporting-SDK wie Firebase Crashlytics
-- keine In-App-Kaeufe
+6. **Fix technical problems**
 
-Die App verwendet Android- und Jetpack-Bibliotheken zur Darstellung und lokalen Datenverarbeitung. Schriftarten koennen ueber die Android-/Google-Play-Services-Schriftartenfunktion bereitgestellt werden. Dabei findet keine Uebermittlung von Kontaktdaten durch die App statt.
+   Aggregated or diagnostic crash information made available by Google Play may be used to identify and fix bugs.
 
-## 11. Crash- und Diagnosedaten ueber Google Play
+The App does not use personal information for third-party advertising, behavioral advertising, user tracking, or selling personal information.
 
-Wenn die App ueber Google Play installiert wurde und der Nutzer die Uebermittlung von Diagnose- und Nutzungsdaten an Google erlaubt hat, kann Google im Rahmen von **Android vitals** aggregierte technische Informationen zu Abstuerzen und ANRs bereitstellen. Diese Informationen dienen der Fehlerbehebung und enthalten typischerweise technische Angaben wie App-Version, Android-Version, Geraetemodell und Stacktraces.
+## 4. How Personal Information Is Disclosed
 
-Wir verwenden in der App kein eigenes Crash-Reporting-SDK und erhalten dadurch keine direkten, von uns erhobenen personenbezogenen Crashberichte aus der App.
+The App is designed to process contact and group information locally on your device. We do not operate an App backend that receives your contact list, contact groups, phone numbers, email addresses, postal addresses, or ringtone assignments.
 
-## 12. Sicherheit
+Personal information may be disclosed or transferred only in the following situations:
 
-Die App verarbeitet Daten lokal auf dem Geraet und nutzt die Sicherheitsmechanismen von Android, insbesondere das Android-Berechtigungssystem und den App-Sandboxing-Mechanismus. Zugriff auf Kontakte erfolgt nur, wenn die erforderlichen Berechtigungen erteilt wurden.
+1. **At your direction or through your device settings**
 
-Bitte beachten Sie, dass die Sicherheit lokal gespeicherter Daten auch von der Sicherheit des Geraets, den Systemeinstellungen, den eingerichteten Konten und den Backup-Einstellungen abhaengt.
+   If you use a contact account that synchronizes contacts, such as a Google account, Exchange account, or another provider, your contact data may be synchronized by that provider according to your device and account settings.
 
-## 13. Loeschung von Daten
+2. **Through Android backup or device transfer**
 
-Sie koennen gespeicherte Daten loeschen, indem Sie:
+   If Android backup or device transfer features are enabled on your device, local App data may be backed up or transferred by Android, Google, the device manufacturer, or another provider involved in that process.
 
-- Gruppen oder Zuordnungen in der App entfernen,
-- Kontakte oder Kontaktgruppen in der Android-Kontakte-App beziehungsweise im Kontaktkonto bearbeiten oder loeschen,
-- die App-Daten in den Android-Systemeinstellungen loeschen,
-- die App deinstallieren.
+3. **To support providers chosen by you**
 
-Da die App kein Nutzerkonto und keinen eigenen Server verwendet, gibt es kein serverseitiges Konto und keine serverseitig gespeicherten App-Daten, die separat geloescht werden muessten.
+   If you email support, your message is transmitted through your email provider and received through the support mailbox provider.
 
-## 14. Rechte betroffener Personen
+4. **Through Google Play diagnostics**
 
-Soweit anwendbares Datenschutzrecht, insbesondere die DSGVO, gilt, haben Sie im Rahmen der gesetzlichen Voraussetzungen Rechte auf:
+   Google may provide App crash and diagnostic information through Google Play Console and Android vitals if your device settings allow such reporting.
 
-- Auskunft ueber personenbezogene Daten,
-- Berichtigung unrichtiger Daten,
-- Loeschung,
-- Einschraenkung der Verarbeitung,
-- Datenuebertragbarkeit,
-- Widerspruch gegen bestimmte Verarbeitungen,
-- Beschwerde bei einer zustaendigen Datenschutzaufsichtsbehoerde.
+5. **For legal reasons**
 
-Da ContactGrouper keine eigenen Server fuer App-Daten betreibt, befinden sich die von der App verarbeiteten Kontaktdaten grundsaetzlich auf Ihrem Geraet beziehungsweise in den von Ihnen eingerichteten Kontaktkonten. Viele Rechte koennen daher direkt ueber die Android-Systemeinstellungen, die Kontakte-App oder das jeweilige Kontaktkonto ausgeuebt werden.
+   Information may be disclosed if required to comply with applicable law, legal process, or enforceable governmental requests.
 
-Fuer Datenschutzanfragen koennen Sie uns unter der oben genannten Kontaktadresse erreichen.
+We do not sell personal information. We do not share personal information for cross-context behavioral advertising.
 
-## 15. Kinder
+## 5. Your Choices
 
-ContactGrouper richtet sich nicht speziell an Kinder. Die App ist fuer die Verwaltung von Kontakten auf dem eigenen Geraet bestimmt.
+You control the App's access and many related processing activities through your device settings.
 
-## 16. Aenderungen dieser Datenschutzerklaerung
+1. **Contacts permission**
 
-Wir koennen diese Datenschutzerklaerung anpassen, wenn sich die App, rechtliche Anforderungen oder technische Rahmenbedingungen aendern. Die jeweils aktuelle Fassung wird unter der veroeffentlichten Datenschutz-URL bereitgestellt.
+   You may grant or revoke the Android contacts permissions at any time in your device settings. If you revoke contacts access, the App may no longer be able to provide its core functionality.
+
+2. **Contact account synchronization**
+
+   You may manage contact synchronization through Android account settings and through the settings of your contact provider.
+
+3. **Android backup**
+
+   You may manage Android backup and device transfer settings through your device settings.
+
+4. **Support requests**
+
+   You choose what information to include when contacting support. Please do not send sensitive information unless it is necessary for your request.
+
+5. **Google Play diagnostics**
+
+   You may manage diagnostic and usage reporting to Google through Android and Google Play settings, where available.
+
+## 6. Your Privacy Rights
+
+Depending on where you live, you may have rights regarding your personal information, including rights to access, correct, delete, restrict, object to processing, or receive a portable copy of certain information.
+
+Because the App primarily processes data locally on your device and does not maintain a user account or App backend for your contact data, many privacy choices can be exercised directly on your device:
+
+- edit or delete contacts in the Android contacts app or your contact provider account;
+- remove contacts from groups in the App or contacts provider;
+- clear App data in Android settings;
+- revoke App permissions in Android settings;
+- uninstall the App.
+
+If you contact support with a privacy request, we may ask for information necessary to understand and respond to your request. We will use that information only for handling the request and related security or legal purposes.
+
+## 7. Security
+
+The App relies on Android security features, including app sandboxing and runtime permissions, to limit access to contact data. Contact and group data handled by the App is processed locally on the device unless a transfer occurs through your own device settings, contact account settings, Android backup, device transfer, support email, or Google Play diagnostics.
+
+No method of electronic storage or transmission is completely secure. The security of data on your device also depends on your device security settings, operating system, lock screen, account settings, backup settings, and contact provider settings.
+
+## 8. Transfers and Device Backups
+
+The App does not operate its own cloud synchronization service for contact data or App data.
+
+However, information processed by the App may be transferred outside your device in the following cases:
+
+- your contacts are synchronized by a contact account provider configured on your device;
+- Android backup or device transfer is enabled;
+- you contact support by email;
+- Google Play provides crash or diagnostic information through Android vitals.
+
+These transfers are controlled by the relevant operating system, platform, account, backup, email, or diagnostics provider.
+
+## 9. Retention
+
+The App stores local App data for as long as needed to provide its features, unless you delete it earlier.
+
+Local App data may remain on your device until you:
+
+- delete groups or memberships in the App;
+- change or delete the relevant contacts or groups in your contacts provider;
+- clear App data in Android settings;
+- uninstall the App;
+- restore, reset, or replace the device.
+
+Support emails may be retained for as long as reasonably necessary to respond to your request, maintain support records, prevent abuse, comply with legal obligations, or resolve disputes.
+
+Google Play diagnostic information is retained according to Google's policies and Google Play Console settings.
+
+## 10. Children
+
+The App is not directed to children and is not designed to knowingly collect personal information from children. If you believe a child has provided personal information through a support request, please contact us so that the request can be reviewed.
+
+## 11. Additional Notice for Users in the United States
+
+Depending on your state of residence, you may have rights to request access, correction, deletion, portability, or information about certain disclosures of personal information.
+
+The App does not sell personal information and does not share personal information for cross-context behavioral advertising. The App does not use sensitive personal information for purposes that require a right to limit under applicable U.S. state privacy laws.
+
+To submit a privacy request, contact support using the email address listed below.
+
+## 12. Additional Notice for California Residents
+
+This section supplements the rest of this Privacy Policy for California residents.
+
+The categories of personal information that may be processed are described in Section 2. The purposes for processing are described in Section 3. The categories of disclosures are described in Section 4.
+
+The App does not sell personal information as "sell" is commonly defined under the California Consumer Privacy Act, as amended by the California Privacy Rights Act. The App does not share personal information for cross-context behavioral advertising.
+
+California residents may have rights to know, access, correct, delete, and obtain information about certain disclosures of personal information, subject to legal limitations. To exercise these rights, contact support using the email address listed below.
+
+## 13. Additional Notice for Users in the European Economic Area, United Kingdom, and Switzerland
+
+Where applicable privacy law requires a legal basis for processing, the App processes personal information for the following legal bases:
+
+1. **Performance of a service requested by you**
+
+   Contact and group information is processed to provide the App's contact organization and ringtone features.
+
+2. **Consent or permission**
+
+   Android contacts access occurs only after you grant the relevant Android permission. You may revoke this permission in device settings.
+
+3. **Legitimate interests**
+
+   Support communications and diagnostic information may be processed to respond to requests, maintain App reliability, prevent abuse, and improve the App.
+
+4. **Legal obligations**
+
+   Information may be processed where necessary to comply with applicable law or legal process.
+
+You may have rights to access, correct, delete, restrict, object to processing, and request portability of your personal information. You may also have the right to lodge a complaint with a data protection authority.
+
+Because the App primarily processes contact data locally on your device, you can often exercise these rights directly by managing contacts, App permissions, App data, backup settings, and account synchronization settings on your device.
+
+## 14. Changes to This Privacy Policy
+
+This Privacy Policy may be updated from time to time to reflect changes to the App, legal requirements, or operational practices.
+
+When the Privacy Policy is updated, the "Last updated" date at the top of this page will be changed. Your continued use of the App after an update means that you acknowledge the updated Privacy Policy.
+
+## 15. Contact Us
+
+For support or privacy questions, contact:
+
+**support@drvlabs.de**
