@@ -1,15 +1,41 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle files
+.gradle/
+build/
+
+# Local configuration files
 local.properties
+keystore.properties
+
+# Android Studio and IntelliJ IDEA files
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Keystore files
+*.jks
+*.keystore
+
+# Log files
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Build directories
+app/build/
+/app/release/
+*/build/
+
+# Proguard configuration files
+proguard-rules.pro
+
+# Miscellaneous
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Android NDK
+ndkBuild/

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F9F9FF"/>
+      <stop offset="0.55" stop-color="#EAF1FF"/>
+      <stop offset="1" stop-color="#F8ECFA"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#365E9D"/>
+      <stop offset="1" stop-color="#814A87"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#1A1C20" flood-opacity="0.18"/>
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#1A1C20" flood-opacity="0.13"/>
+    </filter>
+    <clipPath id="screenClip">
+      <rect x="648" y="62" width="248" height="376" rx="28"/>
+    </clipPath>
+    <clipPath id="detailClip">
+      <rect x="788" y="96" width="178" height="308" rx="24"/>
+    </clipPath>
+    <clipPath id="iconClip">
+      <rect x="12" y="12" width="84" height="84" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1024" height="500" fill="#F9F9FF"/>
+
+  <circle cx="124" cy="392" r="145" fill="#D2E0FF" opacity="0.72"/>
+  <circle cx="940" cy="48" r="120" fill="#F2B0F5" opacity="0.34"/>
+  <circle cx="508" cy="494" r="170" fill="#CDE7B0" opacity="0.24"/>
+
+  <g transform="translate(70 82)">
+    <rect x="0" y="0" width="108" height="108" rx="26" fill="#FFFFFF" filter="url(#softShadow)"/>
+    <g clip-path="url(#iconClip)">
+      <image href="app/src/main/ic_launcher-playstore.png" x="12" y="12" width="84" height="84" preserveAspectRatio="xMidYMid slice"/>
+    </g>
+  </g>
+
+  <g font-family="Helvetica" fill="#1A1C20">
+    <text x="70" y="238" font-size="62" font-weight="800">ContactGrouper</text>
+    <text x="73" y="292" font-size="34" font-weight="650" fill="#365E9D">Kontakte organisieren.</text>
+    <text x="73" y="334" font-size="34" font-weight="650" fill="#814A87">Klingeltöne sofort erkennen.</text>
+  </g>
+
+  <g transform="translate(78 442)" font-family="Helvetica" font-size="16" font-weight="650">
+    <rect x="0" y="-27" width="138" height="36" rx="18" fill="#FFFFFF" opacity="0.88"/>
+    <circle cx="19" cy="-9" r="7" fill="#365E9D"/>
+    <text x="34" y="-4" fill="#32363F">Familie</text>
+    <rect x="154" y="-27" width="116" height="36" rx="18" fill="#FFFFFF" opacity="0.88"/>
+    <circle cx="173" cy="-9" r="7" fill="#3D5800"/>
+    <text x="188" y="-4" fill="#32363F">Arbeit</text>
+    <rect x="286" y="-27" width="126" height="36" rx="18" fill="#FFFFFF" opacity="0.88"/>
+    <circle cx="305" cy="-9" r="7" fill="#8D4B00"/>
+    <text x="320" y="-4" fill="#32363F">Freunde</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="625" y="38" width="294" height="424" rx="42" fill="#20242B"/>
+    <rect x="638" y="51" width="268" height="398" rx="34" fill="#F9F9FF"/>
+    <rect x="728" y="62" width="88" height="8" rx="4" fill="#20242B" opacity="0.28"/>
+  </g>
+
+  <g clip-path="url(#screenClip)" font-family="Helvetica">
+    <rect x="638" y="51" width="268" height="398" fill="#EEEDF3"/>
+    <rect x="638" y="51" width="268" height="82" fill="#F9F9FF"/>
+    <text x="664" y="100" font-size="24" font-weight="750" fill="#1A1C20">Gruppen</text>
+    <circle cx="866" cy="96" r="18" fill="#365E9D"/>
+    <path d="M866 87v18M857 96h18" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+
+    <g transform="translate(662 153)">
+      <rect width="220" height="74" rx="17" fill="#769CDF"/>
+      <text x="20" y="32" font-size="21" font-weight="760" fill="#00326A">Familie</text>
+      <text x="20" y="57" font-size="15" font-weight="520" fill="#00326A">8 Mitglieder</text>
+      <circle cx="188" cy="37" r="18" fill="#FFFFFF" opacity="0.86"/>
+      <path d="M181 37c8-10 14-10 22 0M183 44c6-6 12-6 18 0" fill="none" stroke="#365E9D" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(662 242)">
+      <rect width="220" height="74" rx="17" fill="#CDE7B0"/>
+      <text x="20" y="32" font-size="21" font-weight="760" fill="#223600">Arbeit</text>
+      <text x="20" y="57" font-size="15" font-weight="520" fill="#223600">14 Mitglieder</text>
+      <circle cx="188" cy="37" r="18" fill="#FFFFFF" opacity="0.86"/>
+      <path d="M188 27v23M188 50c8 0 13-5 13-12" fill="none" stroke="#3D5800" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(662 331)">
+      <rect width="220" height="74" rx="17" fill="#FFD9A8"/>
+      <text x="20" y="32" font-size="21" font-weight="760" fill="#4A2800">Freunde</text>
+      <text x="20" y="57" font-size="15" font-weight="520" fill="#4A2800">21 Mitglieder</text>
+      <circle cx="188" cy="37" r="18" fill="#FFFFFF" opacity="0.86"/>
+      <path d="M179 45c7-13 13-13 20 0M181 30c10-4 17 0 20 9" fill="none" stroke="#8D4B00" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="770" y="78" width="214" height="344" rx="34" fill="#2F3035"/>
+    <rect x="782" y="90" width="190" height="320" rx="27" fill="#FFFFFF"/>
+  </g>
+
+  <g clip-path="url(#detailClip)" font-family="Helvetica">
+    <rect x="782" y="90" width="190" height="320" fill="#FFFFFF"/>
+    <rect x="782" y="90" width="190" height="88" fill="url(#primary)"/>
+    <text x="806" y="139" font-size="21" font-weight="760" fill="#FFFFFF">Familie</text>
+    <text x="806" y="165" font-size="13" font-weight="520" fill="#EAF1FF">Klingelton: Warm Bell</text>
+
+    <circle cx="822" cy="212" r="18" fill="#D2E0FF"/>
+    <text x="850" y="218" font-size="15" font-weight="650" fill="#1A1C20">Anna</text>
+    <circle cx="822" cy="259" r="18" fill="#F2B0F5"/>
+    <text x="850" y="265" font-size="15" font-weight="650" fill="#1A1C20">Markus</text>
+    <circle cx="822" cy="306" r="18" fill="#CDE7B0"/>
+    <text x="850" y="312" font-size="15" font-weight="650" fill="#1A1C20">Lea</text>
+
+    <rect x="806" y="346" width="142" height="36" rx="18" fill="#365E9D"/>
+    <path d="M832 355v18M832 373c8 0 13-5 13-12" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="856" y="369" font-size="13" font-weight="760" fill="#FFFFFF">Erkennen</text>
+  </g>
+</svg>
