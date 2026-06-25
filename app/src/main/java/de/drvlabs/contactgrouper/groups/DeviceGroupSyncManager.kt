@@ -9,6 +9,7 @@ import de.drvlabs.contactgrouper.AppError
 import de.drvlabs.contactgrouper.AppErrorKind
 import de.drvlabs.contactgrouper.AppErrorOrigin
 import de.drvlabs.contactgrouper.AppErrorReporter
+import de.drvlabs.contactgrouper.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ class DeviceGroupSyncManager(
     private val source: DeviceGroupSource,
     private val repository: GroupsRepository,
     private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
+    private val getString: (Int) -> String = { "" },
     private val contentObserverFactory: (() -> Unit) -> ContentObserver = { onChange ->
         object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
@@ -161,19 +163,19 @@ class DeviceGroupSyncManager(
         val error = when (errorKind) {
             AppErrorKind.StartupFatal -> AppError.startupFatal(
                 origin = AppErrorOrigin.DeviceGroupSync,
-                title = "App Failed to Start",
-                userMessage = "The app could not import contact groups during startup.",
+                title = getString(R.string.app_error_start_failed_title),
+                userMessage = getString(R.string.app_error_groups_startup_message),
                 throwable = throwable,
-                heading = "Loading contact groups failed during startup.",
+                heading = getString(R.string.app_error_groups_startup_heading),
                 context = mapOf("operation" to operation)
             )
 
             AppErrorKind.RuntimeUnexpected -> AppError.runtimeUnexpected(
                 origin = AppErrorOrigin.DeviceGroupSync,
-                title = "Contact Group Sync Failed",
-                userMessage = "Refreshing contact groups failed unexpectedly.",
+                title = getString(R.string.app_error_group_sync_failed_title),
+                userMessage = getString(R.string.app_error_groups_refresh_message),
                 throwable = throwable,
-                heading = "Refreshing contact groups failed unexpectedly.",
+                heading = getString(R.string.app_error_groups_refresh_heading),
                 context = mapOf("operation" to operation)
             )
         }

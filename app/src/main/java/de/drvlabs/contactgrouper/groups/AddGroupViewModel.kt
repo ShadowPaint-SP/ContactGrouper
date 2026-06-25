@@ -16,7 +16,7 @@ class AddGroupViewModel(
     private val mutableState = MutableStateFlow(AddGroupState())
     val state = mutableState.asStateFlow()
 
-    private val mutableMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val mutableMessages = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     val messages = mutableMessages.asSharedFlow()
 
     fun setGroupName(name: String) {
@@ -39,8 +39,8 @@ class AddGroupViewModel(
         if (result.isSuccess) {
             resetDraft()
         } else {
-            result.userMessage()?.let { message ->
-                mutableMessages.emit(message)
+            result.userMessageResId()?.let { messageResId ->
+                mutableMessages.emit(messageResId)
             }
         }
         return result

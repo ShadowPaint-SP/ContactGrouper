@@ -45,11 +45,14 @@ class ContactsDataSourceTest {
 
     @Test
     fun `resolveContactDisplayName falls back to display name when primary display name is null`() {
-        assertEquals("Fallback Name", resolveContactDisplayName(null, "Fallback Name"))
+        assertEquals(
+            "Fallback Name",
+            resolveContactDisplayName(null, "Fallback Name", "Unnamed contact")
+        )
     }
 
     @Test
     fun `resolveContactDisplayName uses placeholder when all display names are null or blank`() {
-        assertEquals("Null Named", resolveContactDisplayName("   ", null))
+        assertEquals("Unnamed contact", resolveContactDisplayName("   ", null, "Unnamed contact"))
     }
 }

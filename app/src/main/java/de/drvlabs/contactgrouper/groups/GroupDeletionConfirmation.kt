@@ -1,50 +1,67 @@
 package de.drvlabs.contactgrouper.groups
 
-data class GroupDeletionConfirmation(
-    val title: String,
-    val message: String,
-    val confirmLabel: String
-)
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
+import de.drvlabs.contactgrouper.R
 
-fun buildGroupDeletionConfirmation(group: Group): GroupDeletionConfirmation {
+sealed interface GroupDeletionConfirmation {
+    @get:StringRes
+    val titleResId: Int
+
+    @get:StringRes
+    val confirmLabelResId: Int
+}
+
+data class SingleGroupDeletionConfirmation(
+    @StringRes override val titleResId: Int,
+    @StringRes val messageResId: Int,
+    @StringRes override val confirmLabelResId: Int
+) : GroupDeletionConfirmation
+
+data class MultipleGroupDeletionConfirmation(
+    @StringRes override val titleResId: Int,
+    @PluralsRes val messagePluralResId: Int,
+    @StringRes override val confirmLabelResId: Int,
+    val deletableCount: Int,
+    val blockedCount: Int
+) : GroupDeletionConfirmation
+
+fun buildGroupDeletionConfirmation(group: Group): SingleGroupDeletionConfirmation {
     return if (group.deletesFromDevice) {
-        GroupDeletionConfirmation(
-            title = "Delete Group From Device?",
-            message = "Deleting this group will remove it from this app and from the device's contact groups.",
-            confirmLabel = "Delete Everywhere"
+        SingleGroupDeletionConfirmation(
+            titleResId = R.string.delete_group_from_device_title,
+            messageResId = R.string.delete_group_from_device_message,
+            confirmLabelResId = R.string.delete_group_everywhere
         )
     } else {
-        GroupDeletionConfirmation(
-            title = "Delete Group?",
-            message = "Deleting this group will remove it from this app. Contacts will stay on your device.",
-            confirmLabel = "Delete Group"
+        SingleGroupDeletionConfirmation(
+            titleResId = R.string.delete_group_title,
+            messageResId = R.string.delete_group_message,
+            confirmLabelResId = R.string.groups_delete
         )
     }
 }
 
-fun buildGroupDeletionConfirmation(groups: List<Group>): GroupDeletionConfirmation {
+fun buildGroupDeletionConfirmation(groups: List<Group>): MultipleGroupDeletionConfirmation {
     val deletableGroups = groups.filter { it.canDelete }
     val blockedCount = groups.size - deletableGroups.size
     val deletesFromDevice = deletableGroups.any { it.deletesFromDevice }
-    val groupLabel = if (deletableGroups.size == 1) "group" else "groups"
-    val pronoun = if (deletableGroups.size == 1) "it" else "them"
-    val blockedMessage = if (blockedCount > 0) {
-        "\n\n$blockedCount selected ${if (blockedCount == 1) "group is" else "groups are"} read-only and will not be deleted."
-    } else {
-        ""
-    }
 
     return if (deletesFromDevice) {
-        GroupDeletionConfirmation(
-            title = "Delete Selected Groups From Device?",
-            message = "Deleting ${deletableGroups.size} $groupLabel will remove $pronoun from this app and from the device's contact groups.$blockedMessage",
-            confirmLabel = "Delete Eligible"
+        MultipleGroupDeletionConfirmation(
+            titleResId = R.string.delete_selected_groups_from_device_title,
+            messagePluralResId = R.plurals.delete_selected_groups_from_device_message,
+            confirmLabelResId = R.string.delete_eligible,
+            deletableCount = deletableGroups.size,
+            blockedCount = blockedCount
         )
     } else {
-        GroupDeletionConfirmation(
-            title = "Delete Selected Groups?",
-            message = "Deleting ${deletableGroups.size} $groupLabel will remove $pronoun from this app. Contacts will stay on your device.$blockedMessage",
-            confirmLabel = "Delete Eligible"
+        MultipleGroupDeletionConfirmation(
+            titleResId = R.string.delete_selected_groups_title,
+            messagePluralResId = R.plurals.delete_selected_groups_message,
+            confirmLabelResId = R.string.delete_eligible,
+            deletableCount = deletableGroups.size,
+            blockedCount = blockedCount
         )
     }
 }

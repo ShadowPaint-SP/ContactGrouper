@@ -31,9 +31,9 @@ data class AppError(
     companion object {
         fun startupFatal(
             origin: AppErrorOrigin,
+            title: String,
             userMessage: String,
             throwable: Throwable,
-            title: String = "App Failed to Start",
             heading: String? = null,
             context: Map<String, Any?> = emptyMap()
         ): AppError {
@@ -52,9 +52,9 @@ data class AppError(
 
         fun runtimeUnexpected(
             origin: AppErrorOrigin,
+            title: String,
             userMessage: String,
             throwable: Throwable,
-            title: String = "Unexpected Error",
             heading: String? = null,
             context: Map<String, Any?> = emptyMap()
         ): AppError {

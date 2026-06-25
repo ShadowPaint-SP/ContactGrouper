@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -36,7 +37,7 @@ fun AppErrorDialog(
             ) {
                 Text(error.userMessage)
                 Text(
-                    text = "Technical details",
+                    text = stringResource(R.string.app_error_technical_details),
                     modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.titleSmall
                 )
@@ -56,7 +57,13 @@ fun AppErrorDialog(
                     }
                 }
             ) {
-                Text(if (dismissible) "OK" else "Close app")
+                Text(
+                    if (dismissible) {
+                        stringResource(R.string.action_ok)
+                    } else {
+                        stringResource(R.string.app_error_close_app)
+                    }
+                )
             }
         }
     )

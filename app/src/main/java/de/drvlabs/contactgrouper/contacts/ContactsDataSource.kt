@@ -8,6 +8,7 @@ import android.provider.ContactsContract
 import de.drvlabs.contactgrouper.AppError
 import de.drvlabs.contactgrouper.AppErrorOrigin
 import de.drvlabs.contactgrouper.AppErrorReporter
+import de.drvlabs.contactgrouper.R
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ import kotlinx.coroutines.withContext
 class ContactsDataSource(
     private val contentResolver: ContentResolver,
     private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
+    private val getString: (Int) -> String = { "" },
     private val debounceMillis: Long = 300L,
     private val contactsLoader: (() -> List<Contact>)? = null,
     private val contentObserverFactory: (() -> Unit) -> ContentObserver = { onChange ->
@@ -107,19 +109,19 @@ class ContactsDataSource(
                     if (isStartupFailure) {
                         AppError.startupFatal(
                             origin = AppErrorOrigin.ContactsImport,
-                            title = "App Failed to Start",
-                            userMessage = "The app could not load your contacts during startup.",
+                            title = getString(R.string.app_error_start_failed_title),
+                            userMessage = getString(R.string.app_error_contacts_startup_message),
                             throwable = throwable,
-                            heading = "Loading contacts failed during startup.",
+                            heading = getString(R.string.app_error_contacts_startup_heading),
                             context = mapOf("operation" to operation)
                         )
                     } else {
                         AppError.runtimeUnexpected(
                             origin = AppErrorOrigin.ContactsImport,
-                            title = "Contacts Refresh Failed",
-                            userMessage = "Refreshing contacts failed unexpectedly. The current list may be out of date.",
+                            title = getString(R.string.app_error_contacts_refresh_failed_title),
+                            userMessage = getString(R.string.app_error_contacts_refresh_message),
                             throwable = throwable,
-                            heading = "Refreshing contacts failed unexpectedly.",
+                            heading = getString(R.string.app_error_contacts_refresh_heading),
                             context = mapOf("operation" to operation)
                         )
                     }
@@ -166,7 +168,8 @@ class ContactsDataSource(
                     id = id,
                     displayName = resolveContactDisplayName(
                         primaryName = cursor.getString(primaryNameIndex),
-                        displayName = cursor.getString(displayNameIndex)
+                        displayName = cursor.getString(displayNameIndex),
+                        fallbackName = getString(R.string.contact_unknown_name)
                     ),
                     photoUri = cursor.getString(photoIndex),
                     thumbnailUri = cursor.getString(thumbnailIndex),
@@ -255,11 +258,12 @@ class ContactsDataSource(
 
 internal fun resolveContactDisplayName(
     primaryName: String?,
-    displayName: String?
+    displayName: String?,
+    fallbackName: String
 ): String {
     return primaryName.toTrimmedStringOrNull()
         ?: displayName.toTrimmedStringOrNull()
-        ?: "Null Named"
+        ?: fallbackName
 }
 
 private fun String?.toTrimmedStringOrNull(): String? {

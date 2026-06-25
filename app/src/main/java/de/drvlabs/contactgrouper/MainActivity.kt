@@ -35,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModelProvider
@@ -56,7 +58,7 @@ import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.GroupViewModel
 import de.drvlabs.contactgrouper.groups.GroupViewModel.Companion.factory as groupFactory
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
-import de.drvlabs.contactgrouper.groups.userMessage
+import de.drvlabs.contactgrouper.groups.userMessageResId
 import de.drvlabs.contactgrouper.permission.ContactsPermissionEvaluator
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
 
@@ -82,10 +84,10 @@ class MainActivity : ComponentActivity() {
             appErrorReporter.report(
                 AppError.startupFatal(
                     origin = AppErrorOrigin.Bootstrap,
-                    title = "App Failed to Start",
-                    userMessage = "The app hit an unexpected error during startup.",
+                    title = getString(R.string.app_error_start_failed_title),
+                    userMessage = getString(R.string.app_error_startup_message),
                     throwable = throwable,
-                    heading = "Bootstrapping the app failed."
+                    heading = getString(R.string.app_error_bootstrap_heading)
                 )
             )
             null
@@ -193,6 +195,7 @@ private fun MainActivityContent(
     )
 
     val navController = rememberNavController()
+    val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val bottomBarRoutes = navbarItems.map { it.route }
@@ -205,8 +208,8 @@ private fun MainActivityContent(
         val groupState by groupViewModel.state.collectAsState()
 
         LaunchedEffect(groupViewModel) {
-            groupViewModel.messages.collect { message ->
-                snackbarHostState.showSnackbar(message)
+            groupViewModel.messages.collect { messageResId ->
+                snackbarHostState.showSnackbar(context.getString(messageResId))
             }
         }
 
@@ -307,8 +310,8 @@ private fun MainActivityContent(
                             groupState = groupState,
                             onRefresh = {
                                 appContainer.deviceGroupSyncManager.syncNow()
-                                    .userMessage()
-                                    ?.let { snackbarHostState.showSnackbar(it) }
+                                    .userMessageResId()
+                                    ?.let { snackbarHostState.showSnackbar(context.getString(it)) }
                             },
                             onDeleteGroups = { groupIds ->
                                 groupViewModel.deleteGroups(groupIds)
@@ -336,8 +339,8 @@ private fun MainActivityContent(
                         val addGroupState by addGroupViewModel.state.collectAsState()
 
                         LaunchedEffect(addGroupViewModel) {
-                            addGroupViewModel.messages.collect { message ->
-                                snackbarHostState.showSnackbar(message)
+                            addGroupViewModel.messages.collect { messageResId ->
+                                snackbarHostState.showSnackbar(context.getString(messageResId))
                             }
                         }
 
@@ -433,18 +436,18 @@ fun PermissionDialog(
     val onButtonClick: () -> Unit
 
     if (permanentlyDenied) {
-        dialogText = "This app needs contact access to organize groups and apply ringtones. Please enable the permissions in app settings."
-        buttonText = "Open Settings"
+        dialogText = stringResource(R.string.permission_permanently_denied_message)
+        buttonText = stringResource(R.string.action_open_settings)
         onButtonClick = { context.openAppSettings() }
     } else {
-        dialogText = "This app needs contact read and write access to organize groups and apply ringtones."
-        buttonText = "Grant Permissions"
+        dialogText = stringResource(R.string.permission_request_message)
+        buttonText = stringResource(R.string.action_grant_permissions)
         onButtonClick = onRequestPermission
     }
 
     AlertDialog(
         onDismissRequest = { },
-        title = { Text("Permission Required") },
+        title = { Text(stringResource(R.string.permission_required_title)) },
         text = { Text(dialogText) },
         confirmButton = {
             TextButton(onClick = onButtonClick) {
