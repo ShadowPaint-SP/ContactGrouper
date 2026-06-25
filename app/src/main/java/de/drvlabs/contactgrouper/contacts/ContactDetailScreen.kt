@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package de.drvlabs.contactgrouper.contacts
 
 import android.media.RingtoneManager
@@ -22,13 +24,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -73,11 +83,14 @@ fun ContactDetailScreen(
     contactState: ContactsListState,
     groupState: GroupsListState,
     onSaveGroups: suspend (List<Int>) -> GroupMutationResult,
-    onRemoveGroup: suspend (Int) -> GroupMutationResult
+    onRemoveGroup: suspend (Int) -> GroupMutationResult,
+    onEditContact: (Long) -> Unit,
+    onDeleteContact: suspend (Long) -> Boolean
 ) {
     val contact = contactState.contacts.find { it.id == contactId }
     val groupsById = groupState.groups.associateBy { it.id }
     var showManageGroupsDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
@@ -93,8 +106,16 @@ fun ContactDetailScreen(
                     }
                 },
                 actions = {
+                    if (contact != null) {
+                        IconButton(onClick = { onEditContact(contact.id) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit contact")
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.DeleteForever, contentDescription = "Delete contact")
+                        }
+                    }
                     val editableGroups = groupState.groups.filter { it.isMembershipEditable }
-                    if (editableGroups.isNotEmpty()) {
+                    if (contact != null && editableGroups.isNotEmpty()) {
                         IconButton(onClick = { showManageGroupsDialog = true }) {
                             Icon(
                                 Icons.Default.GroupAdd,
@@ -137,6 +158,27 @@ fun ContactDetailScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
+            if (contact.hasPersonalDetails()) {
+                item {
+                    DetailSection(title = "Personal") {
+                        contact.nickname?.let { nickname ->
+                            DetailItem(
+                                icon = Icons.Default.Person,
+                                value = nickname,
+                                type = "Nickname"
+                            )
+                        }
+                        contact.structuredName?.details().orEmpty().forEach { (label, value) ->
+                            DetailItem(
+                                icon = Icons.Default.Person,
+                                value = value,
+                                type = label
+                            )
+                        }
+                    }
+                }
+            }
+
             if (contact.phoneNumbers.isNotEmpty()) {
                 item {
                     DetailSection(title = stringResource(R.string.contact_section_phone)) {
@@ -144,7 +186,7 @@ fun ContactDetailScreen(
                             DetailItem(
                                 icon = Icons.Default.Phone,
                                 value = item.value,
-                                type = getPhoneTypeLabel(item.typeConstant)
+                                type = getPhoneTypeLabel(item)
                             )
                         }
                     }
@@ -157,7 +199,7 @@ fun ContactDetailScreen(
                             DetailItem(
                                 icon = Icons.Default.Email,
                                 value = item.value,
-                                type = getEmailTypeLabel(item.typeConstant)
+                                type = getEmailTypeLabel(item)
                             )
                         }
                     }
@@ -170,7 +212,120 @@ fun ContactDetailScreen(
                             DetailItem(
                                 icon = Icons.Default.LocationOn,
                                 value = address.formattedAddress,
-                                type = getAddressTypeLabel(address.typeConstant)
+                                type = getAddressTypeLabel(address)
+                            )
+                        }
+                    }
+                }
+            }
+            if (contact.organizations.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Organization") {
+                        contact.organizations.forEach { organization ->
+                            DetailItem(
+                                icon = Icons.Default.Business,
+                                value = organization.company,
+                                type = listOfNotNull(
+                                    organization.title,
+                                    organization.department,
+                                    getOrganizationTypeLabel(organization)
+                                ).joinToString(" / ").takeUnless { it.isBlank() }
+                            )
+                        }
+                    }
+                }
+            }
+            if (contact.websites.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Websites") {
+                        contact.websites.forEach { website ->
+                            DetailItem(
+                                icon = Icons.Default.Link,
+                                value = website.url,
+                                type = getWebsiteTypeLabel(website)
+                            )
+                        }
+                    }
+                }
+            }
+            if (contact.events.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Dates") {
+                        contact.events.forEach { event ->
+                            DetailItem(
+                                icon = Icons.Default.Cake,
+                                value = event.date,
+                                type = getEventTypeLabel(event)
+                            )
+                        }
+                    }
+                }
+            }
+            if (contact.relations.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Relationships") {
+                        contact.relations.forEach { relation ->
+                            DetailItem(
+                                icon = Icons.Default.Person,
+                                value = relation.name,
+                                type = getRelationTypeLabel(relation)
+                            )
+                        }
+                    }
+                }
+            }
+            if (contact.instantMessages.isNotEmpty() || contact.sipAddresses.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Messaging") {
+                        contact.instantMessages.forEach { message ->
+                            DetailItem(
+                                icon = Icons.Default.Chat,
+                                value = message.handle,
+                                type = listOfNotNull(
+                                    getImProtocolLabel(message),
+                                    getImTypeLabel(message)
+                                ).joinToString(" / ")
+                            )
+                        }
+                        contact.sipAddresses.forEach { sip ->
+                            DetailItem(
+                                icon = Icons.Default.PhoneInTalk,
+                                value = sip.value,
+                                type = "SIP ${getSipTypeLabel(sip)}"
+                            )
+                        }
+                    }
+                }
+            }
+            if (contact.notes.isNotEmpty()) {
+                item {
+                    DetailSection(title = "Notes") {
+                        contact.notes.forEach { note ->
+                            DetailItem(
+                                icon = Icons.Default.Notes,
+                                value = note,
+                                type = null
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (contact.starred || contact.sendToVoicemail) {
+                item {
+                    DetailSection(title = "Options") {
+                        if (contact.starred) {
+                            DetailItem(
+                                icon = Icons.Default.Star,
+                                value = "Starred",
+                                type = null
+                            )
+                        }
+                        if (contact.sendToVoicemail) {
+                            DetailItem(
+                                icon = Icons.Default.PhoneInTalk,
+                                value = "Send calls to voicemail",
+                                type = null
                             )
                         }
                     }
@@ -232,6 +387,33 @@ fun ContactDetailScreen(
                         if (result.isSuccess) {
                             showManageGroupsDialog = false
                         }
+                    }
+                }
+            )
+        }
+
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete contact?") },
+                text = { Text("This removes ${contact.displayName} from device contacts.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                if (onDeleteContact(contact.id)) {
+                                    showDeleteDialog = false
+                                    navController.popBackStack()
+                                }
+                            }
+                        }
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
                     }
                 }
             )
@@ -310,7 +492,7 @@ private fun DetailItem(
             modifier = Modifier.size(24.dp)
         )
         Spacer(Modifier.width(16.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = value, style = MaterialTheme.typography.bodyLarge)
             type?.let {
                 Text(
@@ -429,32 +611,157 @@ private fun ManageContactGroupsDialog(
     )
 }
 
+private fun Contact.hasPersonalDetails(): Boolean {
+    return nickname != null || structuredName?.details().orEmpty().isNotEmpty()
+}
+
+private fun StructuredName.details(): List<Pair<String, String>> {
+    return listOfNotNull(
+        givenName?.let { "Given name" to it },
+        middleName?.let { "Middle name" to it },
+        familyName?.let { "Family name" to it },
+        prefix?.let { "Prefix" to it },
+        suffix?.let { "Suffix" to it },
+        phoneticGivenName?.let { "Phonetic given" to it },
+        phoneticMiddleName?.let { "Phonetic middle" to it },
+        phoneticFamilyName?.let { "Phonetic family" to it }
+    )
+}
+
 @Composable
-private fun getPhoneTypeLabel(type: Int): String {
-    return when (type) {
+private fun customOrDefault(label: String?, default: String = "Custom"): String {
+    return label?.takeIf { it.isNotBlank() } ?: default
+}
+
+@Composable
+private fun getPhoneTypeLabel(item: ContactDataItem): String {
+    return when (item.typeConstant) {
         ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> stringResource(R.string.contact_type_home)
         ContactsContract.CommonDataKinds.Phone.TYPE_WORK -> stringResource(R.string.contact_type_work)
         ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> stringResource(R.string.contact_type_mobile)
         ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> stringResource(R.string.contact_type_main)
+        ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM -> customOrDefault(item.label)
         else -> stringResource(R.string.contact_type_other)
     }
 }
 
 @Composable
-private fun getEmailTypeLabel(type: Int): String {
-    return when (type) {
+private fun getEmailTypeLabel(item: ContactDataItem): String {
+    return when (item.typeConstant) {
         ContactsContract.CommonDataKinds.Email.TYPE_HOME -> stringResource(R.string.contact_type_home)
         ContactsContract.CommonDataKinds.Email.TYPE_WORK -> stringResource(R.string.contact_type_work)
         ContactsContract.CommonDataKinds.Email.TYPE_MOBILE -> stringResource(R.string.contact_type_mobile)
+        ContactsContract.CommonDataKinds.Email.TYPE_CUSTOM -> customOrDefault(item.label)
         else -> stringResource(R.string.contact_type_other)
     }
 }
 
 @Composable
-private fun getAddressTypeLabel(type: Int): String {
-    return when (type) {
+private fun getAddressTypeLabel(address: Address): String {
+    return when (address.typeConstant) {
         ContactsContract.CommonDataKinds.StructuredPostal.TYPE_HOME -> stringResource(R.string.contact_type_home)
         ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_CUSTOM -> {
+            customOrDefault(address.label)
+        }
+
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getOrganizationTypeLabel(organization: Organization): String {
+    return when (organization.typeConstant) {
+        ContactsContract.CommonDataKinds.Organization.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.Organization.TYPE_OTHER -> stringResource(R.string.contact_type_other)
+        ContactsContract.CommonDataKinds.Organization.TYPE_CUSTOM -> {
+            customOrDefault(organization.label)
+        }
+
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getWebsiteTypeLabel(website: Website): String {
+    return when (website.typeConstant) {
+        ContactsContract.CommonDataKinds.Website.TYPE_HOMEPAGE -> "Homepage"
+        ContactsContract.CommonDataKinds.Website.TYPE_BLOG -> "Blog"
+        ContactsContract.CommonDataKinds.Website.TYPE_PROFILE -> "Profile"
+        ContactsContract.CommonDataKinds.Website.TYPE_HOME -> stringResource(R.string.contact_type_home)
+        ContactsContract.CommonDataKinds.Website.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.Website.TYPE_CUSTOM -> customOrDefault(website.label)
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getEventTypeLabel(event: ContactEvent): String {
+    return when (event.typeConstant) {
+        ContactsContract.CommonDataKinds.Event.TYPE_ANNIVERSARY -> "Anniversary"
+        ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY -> "Birthday"
+        ContactsContract.CommonDataKinds.Event.TYPE_CUSTOM -> customOrDefault(event.label)
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getRelationTypeLabel(relation: Relation): String {
+    return when (relation.typeConstant) {
+        ContactsContract.CommonDataKinds.Relation.TYPE_ASSISTANT -> "Assistant"
+        ContactsContract.CommonDataKinds.Relation.TYPE_BROTHER -> "Brother"
+        ContactsContract.CommonDataKinds.Relation.TYPE_CHILD -> "Child"
+        ContactsContract.CommonDataKinds.Relation.TYPE_DOMESTIC_PARTNER -> "Partner"
+        ContactsContract.CommonDataKinds.Relation.TYPE_FATHER -> "Father"
+        ContactsContract.CommonDataKinds.Relation.TYPE_FRIEND -> "Friend"
+        ContactsContract.CommonDataKinds.Relation.TYPE_MANAGER -> "Manager"
+        ContactsContract.CommonDataKinds.Relation.TYPE_MOTHER -> "Mother"
+        ContactsContract.CommonDataKinds.Relation.TYPE_PARENT -> "Parent"
+        ContactsContract.CommonDataKinds.Relation.TYPE_PARTNER -> "Partner"
+        ContactsContract.CommonDataKinds.Relation.TYPE_SISTER -> "Sister"
+        ContactsContract.CommonDataKinds.Relation.TYPE_SPOUSE -> "Spouse"
+        ContactsContract.CommonDataKinds.Relation.TYPE_CUSTOM -> customOrDefault(relation.label)
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getImTypeLabel(message: InstantMessage): String {
+    return when (message.typeConstant) {
+        ContactsContract.CommonDataKinds.Im.TYPE_HOME -> stringResource(R.string.contact_type_home)
+        ContactsContract.CommonDataKinds.Im.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.Im.TYPE_OTHER -> stringResource(R.string.contact_type_other)
+        ContactsContract.CommonDataKinds.Im.TYPE_CUSTOM -> customOrDefault(message.label)
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getImProtocolLabel(message: InstantMessage): String {
+    return when (message.protocolConstant) {
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_AIM -> "AIM"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_GOOGLE_TALK -> "Google Talk"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_ICQ -> "ICQ"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_JABBER -> "Jabber"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_MSN -> "MSN"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_NETMEETING -> "NetMeeting"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_QQ -> "QQ"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_SKYPE -> "Skype"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_YAHOO -> "Yahoo"
+        ContactsContract.CommonDataKinds.Im.PROTOCOL_CUSTOM -> {
+            customOrDefault(message.customProtocol)
+        }
+
+        else -> stringResource(R.string.contact_type_other)
+    }
+}
+
+@Composable
+private fun getSipTypeLabel(item: ContactDataItem): String {
+    return when (item.typeConstant) {
+        ContactsContract.CommonDataKinds.SipAddress.TYPE_HOME -> stringResource(R.string.contact_type_home)
+        ContactsContract.CommonDataKinds.SipAddress.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.SipAddress.TYPE_CUSTOM -> customOrDefault(item.label)
         else -> stringResource(R.string.contact_type_other)
     }
 }

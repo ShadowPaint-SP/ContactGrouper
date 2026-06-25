@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.MusicNote
@@ -69,6 +70,7 @@ fun ContactsMainScreen(
     navController: NavController,
     state: ContactsListState,
     groups: List<Group>,
+    onCreateContact: () -> Unit,
     onSetContactsGroups: suspend (Map<Long, List<Int>>) -> GroupMutationResult
 ) {
     var selectedContacts by rememberSaveable { mutableStateOf(emptySet<Long>()) }
@@ -101,16 +103,27 @@ fun ContactsMainScreen(
             }
         )
 
-        if (isInSelectionMode) {
-            FloatingActionButton(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 16.dp, end = 24.dp),
-                onClick = { showAssignGroupDialog = true }
-            ) {
+        FloatingActionButton(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 16.dp, end = 24.dp),
+            onClick = {
+                if (isInSelectionMode) {
+                    showAssignGroupDialog = true
+                } else {
+                    onCreateContact()
+                }
+            }
+        ) {
+            if (isInSelectionMode) {
                 Icon(
                     imageVector = Icons.Default.GroupAdd,
                     contentDescription = stringResource(R.string.contacts_assign_groups)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Create contact"
                 )
             }
         }
