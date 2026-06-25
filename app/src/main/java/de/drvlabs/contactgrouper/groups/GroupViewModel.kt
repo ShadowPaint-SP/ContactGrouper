@@ -59,6 +59,14 @@ class GroupViewModel(
         return handleResult(repository.deleteGroup(groupId))
     }
 
+    suspend fun deleteGroups(groupIds: List<Int>): GroupMutationResult {
+        return handleResult(
+            deleteGroupsSequentially(groupIds) { groupId ->
+                repository.deleteGroup(groupId)
+            }
+        )
+    }
+
     companion object {
         fun factory(repository: GroupsRepository): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
@@ -78,4 +86,17 @@ class GroupViewModel(
         }
         return result
     }
+}
+
+internal suspend fun deleteGroupsSequentially(
+    groupIds: List<Int>,
+    deleteGroup: suspend (Int) -> GroupMutationResult
+): GroupMutationResult {
+    groupIds.forEach { groupId ->
+        val result = deleteGroup(groupId)
+        if (result != Success) {
+            return result
+        }
+    }
+    return Success
 }

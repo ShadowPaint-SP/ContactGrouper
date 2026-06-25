@@ -4,10 +4,12 @@ import android.app.Activity
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
@@ -48,14 +52,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -65,18 +73,33 @@ import de.drvlabs.contactgrouper.contacts.ContactsListState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsMainScreen(
     navController: NavController,
     contactState: ContactsListState,
     groupState: GroupsListState,
-    onRefresh: suspend () -> Unit
+    onRefresh: suspend () -> Unit,
+    onDeleteGroups: suspend (List<Int>) -> GroupMutationResult
 ) {
     val allContacts = contactState.contacts
     val coroutineScope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
+    var selectedGroups by rememberSaveable { mutableStateOf(emptySet<Int>()) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
     val minimumRefreshIndicatorMillis = 350L
+    val isInSelectionMode = selectedGroups.isNotEmpty()
+    val selectedGroupModels = groupState.groups.filter { it.id in selectedGroups }
+    val deletableSelectedGroups = selectedGroupModels.filter { it.canDelete }
+
+    BackHandler(enabled = isInSelectionMode) {
+        selectedGroups = emptySet()
+    }
+
+    LaunchedEffect(groupState.groups) {
+        val groupIds = groupState.groups.map { it.id }.toSet()
+        selectedGroups = selectedGroups intersect groupIds
+    }
 
     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         PullToRefreshBox(
@@ -120,36 +143,147 @@ fun GroupsMainScreen(
                 ) {
                     items(groupState.groups) { group ->
                         val memberCount = allContacts.count { group.id in it.groupIds }
-                        GroupCard(group = group, memberCount = memberCount) {
-                            navController.navigate(Screen.GroupDetails.createRoute(group.id))
-                        }
+                        GroupCard(
+                            group = group,
+                            memberCount = memberCount,
+                            isSelected = group.id in selectedGroups,
+                            onClick = {
+                                if (isInSelectionMode) {
+                                    selectedGroups = if (group.id in selectedGroups) {
+                                        selectedGroups - group.id
+                                    } else {
+                                        selectedGroups + group.id
+                                    }
+                                } else {
+                                    navController.navigate(Screen.GroupDetails.createRoute(group.id))
+                                }
+                            },
+                            onLongClick = {
+                                selectedGroups = selectedGroups + group.id
+                            }
+                        )
                     }
                 }
             }
         }
 
-        FloatingActionButton(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 16.dp, end = 24.dp),
-            onClick = { navController.navigate(Screen.AddGroup.route) }
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add Group")
+        if (isInSelectionMode) {
+            val canDeleteSelection = deletableSelectedGroups.isNotEmpty()
+            FloatingActionButton(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 16.dp, end = 24.dp)
+                    .semantics {
+                        if (!canDeleteSelection) {
+                            disabled()
+                        }
+                    },
+                onClick = {
+                    if (canDeleteSelection) {
+                        showDeleteConfirmation = true
+                    }
+                },
+                containerColor = if (canDeleteSelection) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+                contentColor = if (canDeleteSelection) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = if (canDeleteSelection) {
+                        "Delete selected groups"
+                    } else {
+                        "No selected groups can be deleted"
+                    }
+                )
+            }
+        } else {
+            FloatingActionButton(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 16.dp, end = 24.dp),
+                onClick = { navController.navigate(Screen.AddGroup.route) }
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Group")
+            }
+        }
+
+        if (showDeleteConfirmation) {
+            val confirmation = buildGroupDeletionConfirmation(selectedGroupModels)
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmation = false },
+                title = { Text(confirmation.title) },
+                text = { Text(confirmation.message) },
+                confirmButton = {
+                    TextButton(
+                        enabled = deletableSelectedGroups.isNotEmpty(),
+                        onClick = {
+                            coroutineScope.launch {
+                                val result = onDeleteGroups(deletableSelectedGroups.map { it.id })
+                                if (result.isSuccess) {
+                                    selectedGroups = emptySet()
+                                    showDeleteConfirmation = false
+                                }
+                            }
+                        }
+                    ) {
+                        Text(confirmation.confirmLabel)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirmation = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GroupCard(group: Group, memberCount: Int, onClick: () -> Unit) {
+fun GroupCard(
+    group: Group,
+    memberCount: Int,
+    isSelected: Boolean = false,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = group.color)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                group.color
+            }
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = group.name, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = group.name,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = "$memberCount members", style = MaterialTheme.typography.bodyMedium)
