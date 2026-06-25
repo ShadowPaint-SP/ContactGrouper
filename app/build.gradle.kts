@@ -2,7 +2,8 @@ import org.gradle.api.GradleException
 import org.gradle.api.tasks.Copy
 import java.util.Properties
 
-val releaseVersionName = "1.0.0"
+val releaseVersionCode = 2
+val releaseVersionName = "1.0.1"
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.isFile) {
@@ -47,7 +48,7 @@ android {
         applicationId = "de.drvlabs.contactgrouper"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
+        versionCode = releaseVersionCode
         versionName = releaseVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -77,7 +78,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
