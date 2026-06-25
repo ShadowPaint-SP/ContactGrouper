@@ -38,7 +38,7 @@ class AddGroupViewModel(
         )
         if (result.isSuccess) {
             resetDraft()
-        } else {
+        } else if (result != GroupMutationResult.ReservedSystemGroupName) {
             result.userMessageResId()?.let { messageResId ->
                 mutableMessages.emit(messageResId)
             }

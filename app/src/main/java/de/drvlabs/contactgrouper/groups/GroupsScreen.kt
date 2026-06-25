@@ -325,7 +325,7 @@ fun AddGroupScreen(
     onCancel: () -> Unit,
     onSave: suspend () -> GroupMutationResult
 ) {
-    var showNameError by remember { mutableStateOf(false) }
+    var nameErrorMessageResId by rememberSaveable { mutableStateOf<Int?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -357,14 +357,19 @@ fun AddGroupScreen(
                     Button(
                         onClick = {
                             if (state.name.isBlank()) {
-                                showNameError = true
+                                nameErrorMessageResId = R.string.groups_name_empty_error
                                 return@Button
                             }
 
                             coroutineScope.launch {
                                 val result = onSave()
-                                if (result.isSuccess) {
-                                    navController.popBackStack()
+                                when (result) {
+                                    GroupMutationResult.Success -> navController.popBackStack()
+                                    GroupMutationResult.ReservedSystemGroupName -> {
+                                        nameErrorMessageResId =
+                                            R.string.mutation_reserved_system_group_name
+                                    }
+                                    else -> Unit
                                 }
                             }
                         },
@@ -392,20 +397,27 @@ fun AddGroupScreen(
                 value = state.name,
                 onValueChange = {
                     onNameChange(it)
-                    if (it.isNotBlank()) {
-                        showNameError = false
-                    }
+                    nameErrorMessageResId = null
                 },
                 label = { Text(stringResource(R.string.groups_name_label)) },
                 modifier = Modifier.fillMaxWidth(),
-                isError = showNameError,
+                isError = nameErrorMessageResId != null,
                 singleLine = true
             )
-            if (showNameError) {
-                Text(
-                    stringResource(R.string.groups_name_empty_error),
-                    color = MaterialTheme.colorScheme.error
-                )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                nameErrorMessageResId?.let { messageResId ->
+                    Text(
+                        text = stringResource(messageResId),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
 
             Button(
