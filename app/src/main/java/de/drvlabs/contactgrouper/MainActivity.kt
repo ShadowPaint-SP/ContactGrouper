@@ -52,6 +52,7 @@ import de.drvlabs.contactgrouper.contacts.ContactsViewModel
 import de.drvlabs.contactgrouper.groups.AddGroupScreen
 import de.drvlabs.contactgrouper.groups.AddGroupViewModel
 import de.drvlabs.contactgrouper.groups.GroupDetailScreen
+import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.GroupViewModel
 import de.drvlabs.contactgrouper.groups.GroupViewModel.Companion.factory as groupFactory
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
@@ -241,8 +242,18 @@ private fun MainActivityContent(
                             navController = navController,
                             state = contactState,
                             groups = groupState.groups,
-                            onAssignContactsToGroups = { groupIds, contactIds ->
-                                groupViewModel.assignContactsToGroups(groupIds, contactIds)
+                            onSetContactsGroups = { contactGroupIds ->
+                                var finalResult: GroupMutationResult = GroupMutationResult.Success
+                                contactGroupIds.forEach { (contactId, groupIds) ->
+                                    val result = groupViewModel.setContactGroups(contactId, groupIds)
+                                    if (
+                                        finalResult is GroupMutationResult.Success &&
+                                        result !is GroupMutationResult.Success
+                                    ) {
+                                        finalResult = result
+                                    }
+                                }
+                                finalResult
                             }
                         )
                     }
