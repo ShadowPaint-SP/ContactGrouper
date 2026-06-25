@@ -77,6 +77,7 @@ data class InstantMessage(
  * @property displayName The primary name to display for the contact.
  * @property photoUri A string URI for the contact's full-size photo.
  * @property thumbnailUri A string URI for the contact's smaller thumbnail photo.
+ * @property photoVersion The provider photo identifier used to refresh cached image loads.
  * @property customRingtone A string URI for the custom ringtone assigned to this contact.
  * @property nickname An alternative name for the contact.
  *
@@ -93,6 +94,7 @@ data class Contact(
     val displayName: String,
     val photoUri: String?,
     val thumbnailUri: String?,
+    val photoVersion: Long? = null,
 
     // Status & Settings
     val customRingtone: String?,

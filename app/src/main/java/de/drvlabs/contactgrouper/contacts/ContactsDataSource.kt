@@ -174,6 +174,8 @@ class ContactsDataSource(
             ContactsContract.Contacts.DISPLAY_NAME,
             ContactsContract.Contacts.PHOTO_URI,
             ContactsContract.Contacts.PHOTO_THUMBNAIL_URI,
+            ContactsContract.Contacts.PHOTO_ID,
+            ContactsContract.Contacts.PHOTO_FILE_ID,
             ContactsContract.Contacts.CUSTOM_RINGTONE,
             ContactsContract.Contacts.STARRED,
             ContactsContract.Contacts.SEND_TO_VOICEMAIL
@@ -194,6 +196,9 @@ class ContactsDataSource(
             val photoIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_URI)
             val thumbnailIndex =
                 cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_THUMBNAIL_URI)
+            val photoIdIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_ID)
+            val photoFileIdIndex =
+                cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_FILE_ID)
             val ringtoneIndex =
                 cursor.getColumnIndexOrThrow(ContactsContract.Contacts.CUSTOM_RINGTONE)
             val starredIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.STARRED)
@@ -211,6 +216,8 @@ class ContactsDataSource(
                     ),
                     photoUri = cursor.getString(photoIndex),
                     thumbnailUri = cursor.getString(thumbnailIndex),
+                    photoVersion = cursor.getNullableLong(photoFileIdIndex)
+                        ?: cursor.getNullableLong(photoIdIndex),
                     customRingtone = cursor.getString(ringtoneIndex),
                     starred = cursor.getInt(starredIndex) == 1,
                     sendToVoicemail = cursor.getInt(voicemailIndex) == 1
@@ -447,4 +454,8 @@ private fun String?.toTrimmedStringOrNull(): String? {
 
 private fun android.database.Cursor.getTrimmedString(columnIndex: Int): String? {
     return getString(columnIndex).toTrimmedStringOrNull()
+}
+
+private fun android.database.Cursor.getNullableLong(columnIndex: Int): Long? {
+    return if (isNull(columnIndex)) null else getLong(columnIndex)
 }

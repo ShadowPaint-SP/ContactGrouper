@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
@@ -274,6 +275,7 @@ fun ContactList(
     val groupedContacts = contacts.groupBy { it.displayName.firstOrNull()?.uppercase() ?: "#" }
     val groupsById = groups.associateBy { it.id }
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = modifier
@@ -367,18 +369,21 @@ fun ContactList(
                                         contentDescription = stringResource(R.string.contacts_selected),
                                         tint = MaterialTheme.colorScheme.onTertiary
                                     )
-                                } else if (contact.photoUri != null) {
-                                    AsyncImage(
-                                        model = contact.photoUri,
-                                        contentDescription = contact.displayName,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
                                 } else {
-                                    Text(
-                                        text = initial,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
+                                    val photoModel = contact.photoModel(context)
+                                    if (photoModel != null) {
+                                        AsyncImage(
+                                            model = photoModel,
+                                            contentDescription = contact.displayName,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        Text(
+                                            text = initial,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
                                 }
                             }
 

@@ -435,9 +435,11 @@ private fun ContactHeader(contact: Contact) {
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            if (contact.photoUri != null) {
+            val context = LocalContext.current
+            val photoModel = contact.photoModel(context)
+            if (photoModel != null) {
                 AsyncImage(
-                    model = contact.photoUri,
+                    model = photoModel,
                     contentDescription = contact.displayName,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
