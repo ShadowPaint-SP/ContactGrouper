@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 class ContactsViewModel(
-    contactsDataSource: ContactsDataSource,
+    private val contactsDataSource: ContactsDataSource,
     repository: GroupsRepository
 ) : ViewModel() {
 
@@ -25,6 +25,10 @@ class ContactsViewModel(
         SharingStarted.WhileSubscribed(5_000),
         ContactsListState()
     )
+
+    suspend fun deleteContact(contactId: Long): Boolean {
+        return contactsDataSource.deleteContact(contactId)
+    }
 
     companion object {
         fun factory(

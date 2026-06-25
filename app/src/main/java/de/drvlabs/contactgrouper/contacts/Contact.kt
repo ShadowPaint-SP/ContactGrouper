@@ -8,7 +8,8 @@ package de.drvlabs.contactgrouper.contacts
  */
 data class ContactDataItem(
     val value: String,
-    val typeConstant: Int
+    val typeConstant: Int,
+    val label: String? = null
 )
 
 /**
@@ -19,7 +20,53 @@ data class ContactDataItem(
  */
 data class Address(
     val formattedAddress: String,
-    val typeConstant: Int
+    val typeConstant: Int,
+    val label: String? = null
+)
+
+data class StructuredName(
+    val givenName: String? = null,
+    val middleName: String? = null,
+    val familyName: String? = null,
+    val prefix: String? = null,
+    val suffix: String? = null,
+    val phoneticGivenName: String? = null,
+    val phoneticMiddleName: String? = null,
+    val phoneticFamilyName: String? = null
+)
+
+data class Organization(
+    val company: String,
+    val title: String? = null,
+    val department: String? = null,
+    val typeConstant: Int,
+    val label: String? = null
+)
+
+data class Website(
+    val url: String,
+    val typeConstant: Int,
+    val label: String? = null
+)
+
+data class ContactEvent(
+    val date: String,
+    val typeConstant: Int,
+    val label: String? = null
+)
+
+data class Relation(
+    val name: String,
+    val typeConstant: Int,
+    val label: String? = null
+)
+
+data class InstantMessage(
+    val handle: String,
+    val protocolConstant: Int,
+    val customProtocol: String? = null,
+    val typeConstant: Int,
+    val label: String? = null
 )
 
 /**
@@ -30,6 +77,7 @@ data class Address(
  * @property displayName The primary name to display for the contact.
  * @property photoUri A string URI for the contact's full-size photo.
  * @property thumbnailUri A string URI for the contact's smaller thumbnail photo.
+ * @property photoVersion The provider photo identifier used to refresh cached image loads.
  * @property customRingtone A string URI for the custom ringtone assigned to this contact.
  * @property nickname An alternative name for the contact.
  *
@@ -46,14 +94,25 @@ data class Contact(
     val displayName: String,
     val photoUri: String?,
     val thumbnailUri: String?,
+    val photoVersion: Long? = null,
 
     // Status & Settings
     val customRingtone: String?,
+    val starred: Boolean = false,
+    val sendToVoicemail: Boolean = false,
 
     // Detailed Information (as lists of typed data)
+    val structuredName: StructuredName? = null,
     val phoneNumbers: List<ContactDataItem> = emptyList(),
     val emails: List<ContactDataItem> = emptyList(),
     val addresses: List<Address> = emptyList(),
+    val organizations: List<Organization> = emptyList(),
+    val websites: List<Website> = emptyList(),
+    val events: List<ContactEvent> = emptyList(),
+    val relations: List<Relation> = emptyList(),
+    val instantMessages: List<InstantMessage> = emptyList(),
+    val sipAddresses: List<ContactDataItem> = emptyList(),
+    val notes: List<String> = emptyList(),
 
     // Other Fields
     val nickname: String? = null,

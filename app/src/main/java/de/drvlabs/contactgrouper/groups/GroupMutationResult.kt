@@ -21,6 +21,7 @@ sealed interface GroupMutationResult {
     data object PermissionDenied : GroupMutationResult
     data object Conflict : GroupMutationResult
     data object InvalidRequest : GroupMutationResult
+    data object ReservedSystemGroupName : GroupMutationResult
 }
 
 val GroupMutationResult.isSuccess: Boolean
@@ -35,6 +36,8 @@ fun GroupMutationResult.userMessageResId(): Int? {
         GroupMutationResult.Conflict -> R.string.mutation_conflict
 
         GroupMutationResult.InvalidRequest -> R.string.mutation_invalid_request
+
+        GroupMutationResult.ReservedSystemGroupName -> R.string.mutation_reserved_system_group_name
 
         is GroupMutationResult.ProviderWriteFailed -> when (action) {
             GroupMutationAction.CREATE_GROUP -> R.string.mutation_create_group_provider_failed

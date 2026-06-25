@@ -1,10 +1,12 @@
 package de.drvlabs.contactgrouper
 
 import android.Manifest
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -245,6 +247,9 @@ private fun MainActivityContent(
                             navController = navController,
                             state = contactState,
                             groups = groupState.groups,
+                            onCreateContact = {
+                                activity.openContactInsert(appContainer.appErrorReporter)
+                            },
                             onSetContactsGroups = { contactGroupIds ->
                                 var finalResult: GroupMutationResult = GroupMutationResult.Success
                                 contactGroupIds.forEach { (contactId, groupIds) ->
@@ -294,6 +299,19 @@ private fun MainActivityContent(
                             },
                             onRemoveGroup = { groupId ->
                                 groupViewModel.removeContactFromGroup(groupId, contactId)
+                            },
+                            onEditContact = { id ->
+                                activity.openContactEdit(
+                                    contactId = id,
+                                    appErrorReporter = appContainer.appErrorReporter
+                                )
+                            },
+                            onDeleteContact = { id ->
+                                contactsViewModel.deleteContact(id).also { deleted ->
+                                    if (!deleted) {
+                                        snackbarHostState.showSnackbar("Contact was not deleted.")
+                                    }
+                                }
                             }
                         )
                     }
@@ -463,4 +481,58 @@ fun Context.openAppSettings() {
         Uri.fromParts("package", packageName, null)
     )
     startActivity(intent)
+}
+
+fun Context.openContactInsert(appErrorReporter: AppErrorReporter) {
+    runCatching {
+        startActivity(
+            Intent(Intent.ACTION_INSERT).apply {
+                type = ContactsContract.RawContacts.CONTENT_TYPE
+                putExtra("finishActivityOnSaveCompleted", true)
+            }
+        )
+    }.onFailure { throwable ->
+        appErrorReporter.reportContactIntentFailure(
+            title = "Create Contact Failed",
+            userMessage = "The app could not open the contact creator.",
+            throwable = throwable
+        )
+    }
+}
+
+fun Context.openContactEdit(contactId: Long, appErrorReporter: AppErrorReporter) {
+    runCatching {
+        val contactUri = ContentUris.withAppendedId(
+            ContactsContract.Contacts.CONTENT_URI,
+            contactId
+        )
+        startActivity(
+            Intent(Intent.ACTION_EDIT).apply {
+                setDataAndType(contactUri, ContactsContract.Contacts.CONTENT_ITEM_TYPE)
+                putExtra("finishActivityOnSaveCompleted", true)
+            }
+        )
+    }.onFailure { throwable ->
+        appErrorReporter.reportContactIntentFailure(
+            title = "Edit Contact Failed",
+            userMessage = "The app could not open the contact editor.",
+            throwable = throwable
+        )
+    }
+}
+
+private fun AppErrorReporter.reportContactIntentFailure(
+    title: String,
+    userMessage: String,
+    throwable: Throwable
+) {
+    report(
+        AppError.runtimeUnexpected(
+            origin = AppErrorOrigin.ContactsImport,
+            title = title,
+            userMessage = userMessage,
+            throwable = throwable,
+            heading = userMessage
+        )
+    )
 }

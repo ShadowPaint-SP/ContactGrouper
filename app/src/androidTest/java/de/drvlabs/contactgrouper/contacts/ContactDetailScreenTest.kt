@@ -65,7 +65,9 @@ class ContactDetailScreenTest {
                     savedGroupIds = groupIds
                     GroupMutationResult.Success
                 },
-                onRemoveGroup = { GroupMutationResult.Success }
+                onRemoveGroup = { GroupMutationResult.Success },
+                onEditContact = {},
+                onDeleteContact = { true }
             )
         }
 
@@ -119,7 +121,9 @@ class ContactDetailScreenTest {
                     savedGroupIds = groupIds
                     GroupMutationResult.Success
                 },
-                onRemoveGroup = { GroupMutationResult.Success }
+                onRemoveGroup = { GroupMutationResult.Success },
+                onEditContact = {},
+                onDeleteContact = { true }
             )
         }
 

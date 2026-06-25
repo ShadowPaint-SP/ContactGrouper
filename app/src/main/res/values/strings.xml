@@ -104,6 +104,7 @@
     <string name="mutation_permission_denied">Contacts permission is required to complete this action.</string>
     <string name="mutation_conflict">The contacts database changed while this action was running. Please try again.</string>
     <string name="mutation_invalid_request">This action could not be completed.</string>
+    <string name="mutation_reserved_system_group_name">My Contacts is a system group and cannot be overridden.</string>
     <string name="mutation_create_group_provider_failed">The group was created in the app, but syncing it to device contacts failed.</string>
     <string name="mutation_assign_contacts_provider_failed">The contacts were updated in the app, but device contact syncing failed.</string>
     <string name="mutation_set_contact_groups_provider_failed">The contact\'s groups were updated in the app, but device contact syncing failed.</string>

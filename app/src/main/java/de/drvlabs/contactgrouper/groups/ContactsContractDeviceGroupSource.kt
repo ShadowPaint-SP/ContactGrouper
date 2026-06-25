@@ -64,7 +64,12 @@ class ContactsContractDeviceGroupSource(
             return DeviceGroupSnapshot(emptyList(), emptyList())
         }
 
-        val importedDeviceGroupIds = groups.map { it.deviceGroupId }.toSet()
+        val visibleGroups = groups.filterNot { isReservedSystemGroupName(it.title) }
+        if (visibleGroups.isEmpty()) {
+            return DeviceGroupSnapshot(emptyList(), emptyList())
+        }
+
+        val importedDeviceGroupIds = visibleGroups.map { it.deviceGroupId }.toSet()
         val membershipProjection = arrayOf(
             ContactsContract.Data.CONTACT_ID,
             ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID
@@ -95,7 +100,7 @@ class ContactsContractDeviceGroupSource(
         }
 
         return DeviceGroupSnapshot(
-            groups = groups,
+            groups = visibleGroups,
             memberships = memberships.distinct()
         )
     }
