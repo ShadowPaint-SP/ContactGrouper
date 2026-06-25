@@ -28,13 +28,14 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -49,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -65,7 +67,7 @@ fun ContactsMainScreen(
     navController: NavController,
     state: ContactsListState,
     groups: List<Group>,
-    onAssignContactsToGroups: suspend (List<Int>, List<Long>) -> GroupMutationResult
+    onSetContactsGroups: suspend (Map<Long, List<Int>>) -> GroupMutationResult
 ) {
     var selectedContacts by rememberSaveable { mutableStateOf(emptySet<Long>()) }
     val isInSelectionMode = selectedContacts.isNotEmpty()
@@ -112,15 +114,16 @@ fun ContactsMainScreen(
         }
 
         if (showAssignGroupDialog) {
+            val selectedContactModels = state.contacts.filter { it.id in selectedContacts }
             AssignToGroupDialog(
                 groups = groups,
+                selectedContacts = selectedContactModels,
                 onDismiss = { showAssignGroupDialog = false },
-                onAssign = { groupIds ->
-                    assignContactsToGroups(
+                onAssign = { contactGroupIds ->
+                    setContactsGroups(
                         scope = coroutineScope,
-                        groupIds = groupIds,
-                        contactIds = selectedContacts.toList(),
-                        onAssignContactsToGroups = onAssignContactsToGroups,
+                        contactGroupIds = contactGroupIds,
+                        onSetContactsGroups = onSetContactsGroups,
                         onSuccess = {
                             selectedContacts = emptySet()
                             showAssignGroupDialog = false
@@ -132,15 +135,14 @@ fun ContactsMainScreen(
     }
 }
 
-private fun assignContactsToGroups(
+private fun setContactsGroups(
     scope: CoroutineScope,
-    groupIds: List<Int>,
-    contactIds: List<Long>,
-    onAssignContactsToGroups: suspend (List<Int>, List<Long>) -> GroupMutationResult,
+    contactGroupIds: Map<Long, List<Int>>,
+    onSetContactsGroups: suspend (Map<Long, List<Int>>) -> GroupMutationResult,
     onSuccess: () -> Unit
 ) {
     scope.launch {
-        val result = onAssignContactsToGroups(groupIds, contactIds)
+        val result = onSetContactsGroups(contactGroupIds)
         if (result.isSuccess) {
             onSuccess()
         }
@@ -151,45 +153,59 @@ private fun assignContactsToGroups(
 @Composable
 private fun AssignToGroupDialog(
     groups: List<Group>,
+    selectedContacts: List<Contact>,
     onDismiss: () -> Unit,
-    onAssign: (List<Int>) -> Unit
+    onAssign: (Map<Long, List<Int>>) -> Unit
 ) {
     val editableGroups = groups.filter { it.isMembershipEditable }
-    val selectedGroupIds = remember { mutableStateListOf<Int>() }
+    val initialGroupStates = remember(selectedContacts, editableGroups) {
+        initialBulkGroupMembershipStates(selectedContacts, editableGroups)
+    }
+    val groupStates = remember(initialGroupStates) {
+        mutableStateListOf<Pair<Int, BulkGroupMembershipState>>().apply {
+            addAll(initialGroupStates.toList())
+        }
+    }
+
+    fun groupState(groupId: Int): BulkGroupMembershipState {
+        return groupStates.firstOrNull { it.first == groupId }?.second
+            ?: BulkGroupMembershipState.Unselected
+    }
+
+    fun setGroupState(groupId: Int, state: BulkGroupMembershipState) {
+        val index = groupStates.indexOfFirst { it.first == groupId }
+        if (index >= 0) {
+            groupStates[index] = groupId to state
+        }
+    }
+
+    fun cycleGroupState(groupId: Int) {
+        setGroupState(groupId, nextBulkGroupMembershipState(groupState(groupId)))
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Assign To Groups") },
+        title = { Text("Manage Groups") },
         text = {
             if (editableGroups.isEmpty()) {
                 Text("Create a local group first. Imported read-only groups cannot be changed here.")
             } else {
                 LazyColumn {
                     items(editableGroups) { group ->
+                        val state = groupState(group.id)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .combinedClickable {
-                                    if (group.id in selectedGroupIds) {
-                                        selectedGroupIds.remove(group.id)
-                                    } else {
-                                        selectedGroupIds.add(group.id)
-                                    }
-                                }
+                                .combinedClickable { cycleGroupState(group.id) }
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = group.id in selectedGroupIds,
-                                onCheckedChange = { checked ->
-                                    if (checked) {
-                                        if (group.id !in selectedGroupIds) {
-                                            selectedGroupIds.add(group.id)
-                                        }
-                                    } else {
-                                        selectedGroupIds.remove(group.id)
-                                    }
-                                }
+                            TriStateCheckbox(
+                                state = state.toToggleableState(),
+                                onClick = { cycleGroupState(group.id) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary
+                                )
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(text = group.name)
@@ -200,10 +216,18 @@ private fun AssignToGroupDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onAssign(selectedGroupIds.toList()) },
-                enabled = selectedGroupIds.isNotEmpty()
+                onClick = {
+                    onAssign(
+                        buildBulkContactGroupSelections(
+                            selectedContacts = selectedContacts,
+                            editableGroups = editableGroups,
+                            groupStates = groupStates.toMap()
+                        )
+                    )
+                },
+                enabled = editableGroups.isNotEmpty() && selectedContacts.isNotEmpty()
             ) {
-                Text("Assign")
+                Text("Save")
             }
         },
         dismissButton = {
@@ -212,6 +236,14 @@ private fun AssignToGroupDialog(
             }
         }
     )
+}
+
+private fun BulkGroupMembershipState.toToggleableState(): ToggleableState {
+    return when (this) {
+        BulkGroupMembershipState.Selected -> ToggleableState.On
+        BulkGroupMembershipState.Partial -> ToggleableState.Indeterminate
+        BulkGroupMembershipState.Unselected -> ToggleableState.Off
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
