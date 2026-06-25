@@ -158,6 +158,63 @@ fun ContactDetailScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
+            if (contact.phoneNumbers.isNotEmpty()) {
+                item {
+                    DetailSection(title = stringResource(R.string.contact_section_phone)) {
+                        contact.phoneNumbers.forEach { item ->
+                            DetailItem(
+                                icon = Icons.Default.Phone,
+                                value = item.value,
+                                type = getPhoneTypeLabel(item)
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                DetailSection(title = stringResource(R.string.contact_section_ringtone)) {
+                    val context = LocalContext.current
+                    val defaultRingtoneTitle = stringResource(R.string.contact_default_ringtone)
+                    val title = contact.customRingtone?.let { ringtoneValue ->
+                        val ringtone = RingtoneManager.getRingtone(context, ringtoneValue.toUri())
+                        ringtone?.getTitle(context)
+                    } ?: defaultRingtoneTitle
+
+                    DetailItem(
+                        icon = Icons.Default.PhoneInTalk,
+                        value = title ?: defaultRingtoneTitle,
+                        type = null
+                    )
+                }
+            }
+
+            if (contactGroups.isNotEmpty()) {
+                item {
+                    DetailSection(title = stringResource(R.string.contact_section_groups)) {
+                        contactGroups.forEach { group ->
+                            DetailGroupItem(
+                                group = group,
+                                onRemove = {
+                                    coroutineScope.launch {
+                                        onRemoveGroup(group.id)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            } else if (editableGroups.isNotEmpty()) {
+                item {
+                    DetailSection(title = stringResource(R.string.contact_section_groups)) {
+                        Text(
+                            text = stringResource(R.string.contact_no_groups),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
             if (contact.hasPersonalDetails()) {
                 item {
                     DetailSection(title = "Personal") {
@@ -179,19 +236,6 @@ fun ContactDetailScreen(
                 }
             }
 
-            if (contact.phoneNumbers.isNotEmpty()) {
-                item {
-                    DetailSection(title = stringResource(R.string.contact_section_phone)) {
-                        contact.phoneNumbers.forEach { item ->
-                            DetailItem(
-                                icon = Icons.Default.Phone,
-                                value = item.value,
-                                type = getPhoneTypeLabel(item)
-                            )
-                        }
-                    }
-                }
-            }
             if (contact.emails.isNotEmpty()) {
                 item {
                     DetailSection(title = stringResource(R.string.contact_section_email)) {
@@ -328,49 +372,6 @@ fun ContactDetailScreen(
                                 type = null
                             )
                         }
-                    }
-                }
-            }
-
-            item {
-                DetailSection(title = stringResource(R.string.contact_section_ringtone)) {
-                    val context = LocalContext.current
-                    val defaultRingtoneTitle = stringResource(R.string.contact_default_ringtone)
-                    val title = contact.customRingtone?.let { ringtoneValue ->
-                        val ringtone = RingtoneManager.getRingtone(context, ringtoneValue.toUri())
-                        ringtone?.getTitle(context)
-                    } ?: defaultRingtoneTitle
-
-                    DetailItem(
-                        icon = Icons.Default.PhoneInTalk,
-                        value = title ?: defaultRingtoneTitle,
-                        type = null
-                    )
-                }
-            }
-
-            if (contactGroups.isNotEmpty()) {
-                item {
-                    DetailSection(title = stringResource(R.string.contact_section_groups)) {
-                        contactGroups.forEach { group ->
-                            DetailGroupItem(
-                                group = group,
-                                onRemove = {
-                                    coroutineScope.launch {
-                                        onRemoveGroup(group.id)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            } else if (editableGroups.isNotEmpty()) {
-                item {
-                    DetailSection(title = stringResource(R.string.contact_section_groups)) {
-                        Text(
-                            text = stringResource(R.string.contact_no_groups),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
                     }
                 }
             }
