@@ -38,6 +38,9 @@ class RoomGroupsRepository(
         if (trimmedName.isBlank()) {
             return GroupMutationResult.InvalidRequest
         }
+        if (isReservedSystemGroupName(trimmedName)) {
+            return GroupMutationResult.ReservedSystemGroupName
+        }
 
         return runMutation {
             database.groupDao.insertGroup(
@@ -294,6 +297,7 @@ class RoomGroupsRepository(
 
     override suspend fun syncDeviceGroups(snapshot: DeviceGroupSnapshot): GroupMutationResult {
         return runMutation(GroupMutationAction.SYNC_DEVICE_GROUPS) {
+            val importableSnapshot = snapshot.withoutReservedSystemGroups()
             val affectedContacts = mutableSetOf<Long>()
 
             database.withTransaction {
@@ -303,9 +307,9 @@ class RoomGroupsRepository(
                     .getGroupsBySource(GroupSyncSource.LOCAL)
                     .mapNotNull { it.deviceGroupId }
                     .toSet()
-                val importableSnapshotGroups = snapshot.groups
+                val importableSnapshotGroups = importableSnapshot.groups
                     .filter { it.deviceGroupId !in mirroredLocalDeviceGroupIds }
-                val importableSnapshotMemberships = snapshot.memberships
+                val importableSnapshotMemberships = importableSnapshot.memberships
                     .filter { it.deviceGroupId !in mirroredLocalDeviceGroupIds }
                 val existingDeviceGroups = groupDao.getGroupsBySource(GroupSyncSource.DEVICE)
                 val existingDeviceGroupsByDeviceId =

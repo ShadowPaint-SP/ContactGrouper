@@ -33,6 +33,19 @@ class RoomGroupsRepositoryTest {
             assertTrue(error?.technicalDetails?.contains("insertGroup blew up") == true)
         }
 
+    @Test
+    fun `createLocalGroup rejects My Contacts system group name before writing`() = runBlocking {
+        val repository = RoomGroupsRepository(
+            database = ThrowingGroupDatabase(),
+            ringtoneGateway = NoOpContactRingtoneGateway,
+            deviceGroupWriteGateway = NoOpDeviceGroupWriteGateway
+        )
+
+        val result = repository.createLocalGroup(" my contacts ", null)
+
+        assertEquals(GroupMutationResult.ReservedSystemGroupName, result)
+    }
+
     private class ThrowingGroupDatabase : GroupDatabase() {
         override val groupDao: GroupDao = object : GroupDao {
             override suspend fun insertGroup(group: Group): Long {
