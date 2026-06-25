@@ -309,6 +309,9 @@ private fun MainActivityContent(
                                 appContainer.deviceGroupSyncManager.syncNow()
                                     .userMessage()
                                     ?.let { snackbarHostState.showSnackbar(it) }
+                            },
+                            onDeleteGroups = { groupIds ->
+                                groupViewModel.deleteGroups(groupIds)
                             }
                         )
                     }

@@ -21,3 +21,30 @@ fun buildGroupDeletionConfirmation(group: Group): GroupDeletionConfirmation {
         )
     }
 }
+
+fun buildGroupDeletionConfirmation(groups: List<Group>): GroupDeletionConfirmation {
+    val deletableGroups = groups.filter { it.canDelete }
+    val blockedCount = groups.size - deletableGroups.size
+    val deletesFromDevice = deletableGroups.any { it.deletesFromDevice }
+    val groupLabel = if (deletableGroups.size == 1) "group" else "groups"
+    val pronoun = if (deletableGroups.size == 1) "it" else "them"
+    val blockedMessage = if (blockedCount > 0) {
+        "\n\n$blockedCount selected ${if (blockedCount == 1) "group is" else "groups are"} read-only and will not be deleted."
+    } else {
+        ""
+    }
+
+    return if (deletesFromDevice) {
+        GroupDeletionConfirmation(
+            title = "Delete Selected Groups From Device?",
+            message = "Deleting ${deletableGroups.size} $groupLabel will remove $pronoun from this app and from the device's contact groups.$blockedMessage",
+            confirmLabel = "Delete Eligible"
+        )
+    } else {
+        GroupDeletionConfirmation(
+            title = "Delete Selected Groups?",
+            message = "Deleting ${deletableGroups.size} $groupLabel will remove $pronoun from this app. Contacts will stay on your device.$blockedMessage",
+            confirmLabel = "Delete Eligible"
+        )
+    }
+}
