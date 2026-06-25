@@ -62,11 +62,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import de.drvlabs.contactgrouper.R
 import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.contacts.ContactList
 import de.drvlabs.contactgrouper.contacts.ContactsListState
@@ -131,7 +134,7 @@ fun GroupsMainScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "No groups yet.\nPull down to sync device groups or tap '+' to add one.",
+                        stringResource(R.string.groups_empty),
                         fontSize = 18.sp
                     )
                 }
@@ -197,9 +200,9 @@ fun GroupsMainScreen(
                 Icon(
                     Icons.Filled.Delete,
                     contentDescription = if (canDeleteSelection) {
-                        "Delete selected groups"
+                        stringResource(R.string.groups_delete_selected)
                     } else {
-                        "No selected groups can be deleted"
+                        stringResource(R.string.groups_no_selected_deletable)
                     }
                 )
             }
@@ -210,16 +213,34 @@ fun GroupsMainScreen(
                     .padding(bottom = 16.dp, end = 24.dp),
                 onClick = { navController.navigate(Screen.AddGroup.route) }
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Group")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.groups_add))
             }
         }
 
         if (showDeleteConfirmation) {
             val confirmation = buildGroupDeletionConfirmation(selectedGroupModels)
+            val blockedMessage = if (confirmation.blockedCount > 0) {
+                pluralStringResource(
+                    R.plurals.delete_selected_read_only_blocked_message,
+                    confirmation.blockedCount,
+                    confirmation.blockedCount
+                )
+            } else {
+                ""
+            }
             AlertDialog(
                 onDismissRequest = { showDeleteConfirmation = false },
-                title = { Text(confirmation.title) },
-                text = { Text(confirmation.message) },
+                title = { Text(stringResource(confirmation.titleResId)) },
+                text = {
+                    Text(
+                        pluralStringResource(
+                            confirmation.messagePluralResId,
+                            confirmation.deletableCount,
+                            confirmation.deletableCount,
+                            blockedMessage
+                        )
+                    )
+                },
                 confirmButton = {
                     TextButton(
                         enabled = deletableSelectedGroups.isNotEmpty(),
@@ -233,12 +254,12 @@ fun GroupsMainScreen(
                             }
                         }
                     ) {
-                        Text(confirmation.confirmLabel)
+                        Text(stringResource(confirmation.confirmLabelResId))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteConfirmation = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
                 }
             )
@@ -280,13 +301,16 @@ fun GroupCard(
                 if (isSelected) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
+                        contentDescription = stringResource(R.string.contacts_selected),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "$memberCount members", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = pluralStringResource(R.plurals.group_member_count, memberCount, memberCount),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -320,10 +344,13 @@ fun AddGroupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add New Group") },
+                title = { Text(stringResource(R.string.groups_add_new)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBackIosNew,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
                     }
                 },
                 actions = {
@@ -345,10 +372,10 @@ fun AddGroupScreen(
                     ) {
                         Icon(
                             Icons.Default.Save,
-                            contentDescription = "Save Group",
+                            contentDescription = stringResource(R.string.groups_save),
                             modifier = Modifier.padding(end = 8.dp)
                         )
-                        Text("Save")
+                        Text(stringResource(R.string.action_save))
                     }
                 }
             )
@@ -369,13 +396,16 @@ fun AddGroupScreen(
                         showNameError = false
                     }
                 },
-                label = { Text("Group Name") },
+                label = { Text(stringResource(R.string.groups_name_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 isError = showNameError,
                 singleLine = true
             )
             if (showNameError) {
-                Text("Group name cannot be empty.", color = MaterialTheme.colorScheme.error)
+                Text(
+                    stringResource(R.string.groups_name_empty_error),
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Button(
@@ -383,13 +413,19 @@ fun AddGroupScreen(
                     ringtonePickerLauncher.launch(Intent(RingtoneManager.ACTION_RINGTONE_PICKER))
                 }
             ) {
-                Text(if (state.ringtoneUri == null) "Assign Ringtone" else "Change Ringtone")
+                Text(
+                    if (state.ringtoneUri == null) {
+                        stringResource(R.string.groups_assign_ringtone)
+                    } else {
+                        stringResource(R.string.groups_change_ringtone)
+                    }
+                )
             }
 
             state.ringtoneUri?.let {
                 val ringtone = RingtoneManager.getRingtone(context, it)
                 val title = ringtone.getTitle(context)
-                Text("Ringtone selected: $title")
+                Text(stringResource(R.string.groups_ringtone_selected, title))
             }
         }
     }
@@ -432,21 +468,27 @@ fun GroupDetailScreen(
                 title = { Text("") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBackIosNew,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
                     }
                 },
                 actions = {
                     if (group != null) {
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Settings")
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.action_settings)
+                                )
                             }
                             DropdownMenu(
                                 expanded = showMenu,
                                 onDismissRequest = { showMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Change Ringtone") },
+                                    text = { Text(stringResource(R.string.groups_change_ringtone)) },
                                     onClick = {
                                         showMenu = false
                                         ringtonePickerLauncher.launch(
@@ -458,9 +500,9 @@ fun GroupDetailScreen(
                                     text = {
                                         Text(
                                             if (group.deletesFromDevice) {
-                                                "Delete Group From Device"
+                                                stringResource(R.string.groups_delete_from_device)
                                             } else {
-                                                "Delete Group"
+                                                stringResource(R.string.groups_delete)
                                             }
                                         )
                                     },
@@ -484,7 +526,7 @@ fun GroupDetailScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Group not found.")
+                Text(stringResource(R.string.group_not_found))
             }
             return@Scaffold
         }
@@ -518,21 +560,25 @@ fun GroupDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${groupContacts.size} member${if (groupContacts.size != 1) "s" else ""}",
+                            text = pluralStringResource(
+                                R.plurals.group_member_count,
+                                groupContacts.size,
+                                groupContacts.size
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (group.isDeviceBacked) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Imported from device contacts",
+                                text = stringResource(R.string.group_imported_from_device),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else if (group.deletesFromDevice) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Syncs to device contacts",
+                                text = stringResource(R.string.group_syncs_to_device),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -552,7 +598,7 @@ fun GroupDetailScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.LibraryMusic,
-                                contentDescription = "Ringtone",
+                                contentDescription = stringResource(R.string.group_ringtone),
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -568,7 +614,7 @@ fun GroupDetailScreen(
             }
 
             Text(
-                text = "Members",
+                text = stringResource(R.string.group_members),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp),
                 color = MaterialTheme.colorScheme.primary
@@ -581,7 +627,7 @@ fun GroupDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "No contacts have been added to this group yet.",
+                            stringResource(R.string.group_no_contacts),
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -604,9 +650,9 @@ fun GroupDetailScreen(
     if (group != null && showDeleteConfirmation) {
         val confirmation = buildGroupDeletionConfirmation(group)
         DeleteGroupConfirmationDialog(
-            title = confirmation.title,
-            message = confirmation.message,
-            confirmLabel = confirmation.confirmLabel,
+            title = stringResource(confirmation.titleResId),
+            message = stringResource(confirmation.messageResId),
+            confirmLabel = stringResource(confirmation.confirmLabelResId),
             onDismiss = { showDeleteConfirmation = false },
             onConfirm = {
                 coroutineScope.launch {
@@ -640,7 +686,7 @@ fun DeleteGroupConfirmationDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

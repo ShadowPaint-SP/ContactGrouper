@@ -1,6 +1,7 @@
 package de.drvlabs.contactgrouper.groups
 
 import androidx.compose.ui.graphics.Color
+import de.drvlabs.contactgrouper.R
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -16,12 +17,9 @@ class GroupDeletionConfirmationTest {
             )
         )
 
-        assertEquals("Delete Group?", confirmation.title)
-        assertEquals(
-            "Deleting this group will remove it from this app. Contacts will stay on your device.",
-            confirmation.message
-        )
-        assertEquals("Delete Group", confirmation.confirmLabel)
+        assertEquals(R.string.delete_group_title, confirmation.titleResId)
+        assertEquals(R.string.delete_group_message, confirmation.messageResId)
+        assertEquals(R.string.groups_delete, confirmation.confirmLabelResId)
     }
 
     @Test
@@ -35,12 +33,9 @@ class GroupDeletionConfirmationTest {
             )
         )
 
-        assertEquals("Delete Group From Device?", confirmation.title)
-        assertEquals(
-            "Deleting this group will remove it from this app and from the device's contact groups.",
-            confirmation.message
-        )
-        assertEquals("Delete Everywhere", confirmation.confirmLabel)
+        assertEquals(R.string.delete_group_from_device_title, confirmation.titleResId)
+        assertEquals(R.string.delete_group_from_device_message, confirmation.messageResId)
+        assertEquals(R.string.delete_group_everywhere, confirmation.confirmLabelResId)
     }
 
     @Test
@@ -62,12 +57,11 @@ class GroupDeletionConfirmationTest {
             )
         )
 
-        assertEquals("Delete Selected Groups?", confirmation.title)
-        assertEquals(
-            "Deleting 1 group will remove it from this app. Contacts will stay on your device.\n\n1 selected group is read-only and will not be deleted.",
-            confirmation.message
-        )
-        assertEquals("Delete Eligible", confirmation.confirmLabel)
+        assertEquals(R.string.delete_selected_groups_title, confirmation.titleResId)
+        assertEquals(R.plurals.delete_selected_groups_message, confirmation.messagePluralResId)
+        assertEquals(R.string.delete_eligible, confirmation.confirmLabelResId)
+        assertEquals(1, confirmation.deletableCount)
+        assertEquals(1, confirmation.blockedCount)
     }
 
     @Test
@@ -88,11 +82,13 @@ class GroupDeletionConfirmationTest {
             )
         )
 
-        assertEquals("Delete Selected Groups From Device?", confirmation.title)
+        assertEquals(R.string.delete_selected_groups_from_device_title, confirmation.titleResId)
         assertEquals(
-            "Deleting 2 groups will remove them from this app and from the device's contact groups.",
-            confirmation.message
+            R.plurals.delete_selected_groups_from_device_message,
+            confirmation.messagePluralResId
         )
-        assertEquals("Delete Eligible", confirmation.confirmLabel)
+        assertEquals(R.string.delete_eligible, confirmation.confirmLabelResId)
+        assertEquals(2, confirmation.deletableCount)
+        assertEquals(0, confirmation.blockedCount)
     }
 }

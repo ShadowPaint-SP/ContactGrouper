@@ -24,7 +24,7 @@ class GroupViewModel(
             GroupsListState()
         )
 
-    private val mutableMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    private val mutableMessages = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     val messages = mutableMessages.asSharedFlow()
 
     suspend fun assignContactsToGroups(
@@ -80,8 +80,8 @@ class GroupViewModel(
 
     private suspend fun handleResult(result: GroupMutationResult): GroupMutationResult {
         if (result != Success) {
-            result.userMessage()?.let { message ->
-                mutableMessages.emit(message)
+            result.userMessageResId()?.let { messageResId ->
+                mutableMessages.emit(messageResId)
             }
         }
         return result

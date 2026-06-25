@@ -50,10 +50,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import de.drvlabs.contactgrouper.R
 import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.groups.Group
 import de.drvlabs.contactgrouper.groups.GroupMutationResult
@@ -108,7 +110,7 @@ fun ContactsMainScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.GroupAdd,
-                    contentDescription = "Assign groups"
+                    contentDescription = stringResource(R.string.contacts_assign_groups)
                 )
             }
         }
@@ -185,10 +187,10 @@ private fun AssignToGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manage Groups") },
+        title = { Text(stringResource(R.string.contacts_manage_groups)) },
         text = {
             if (editableGroups.isEmpty()) {
-                Text("Create a local group first. Imported read-only groups cannot be changed here.")
+                Text(stringResource(R.string.contacts_no_editable_groups))
             } else {
                 LazyColumn {
                     items(editableGroups) { group ->
@@ -227,12 +229,12 @@ private fun AssignToGroupDialog(
                 },
                 enabled = editableGroups.isNotEmpty() && selectedContacts.isNotEmpty()
             ) {
-                Text("Save")
+                Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -349,7 +351,7 @@ fun ContactList(
                                 if (isSelected) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
+                                        contentDescription = stringResource(R.string.contacts_selected),
                                         tint = MaterialTheme.colorScheme.onTertiary
                                     )
                                 } else if (contact.photoUri != null) {
@@ -433,7 +435,7 @@ fun GroupBadge(
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Default.MusicNote,
-                    contentDescription = "Controls ringtone",
+                    contentDescription = stringResource(R.string.contacts_controls_ringtone),
                     modifier = Modifier.size(12.dp),
                     tint = MaterialTheme.colorScheme.onPrimary
                 )

@@ -31,14 +31,16 @@ class AppContainer(
             database = database,
             ringtoneGateway = AndroidContactRingtoneGateway(contentResolver),
             deviceGroupWriteGateway = ContactsContractDeviceGroupWriteGateway(contentResolver),
-            appErrorReporter = appErrorReporter
+            appErrorReporter = appErrorReporter,
+            getString = appContext::getString
         )
     }
 
     val contactsDataSource: ContactsDataSource by lazy {
         ContactsDataSource(
             contentResolver = contentResolver,
-            appErrorReporter = appErrorReporter
+            appErrorReporter = appErrorReporter,
+            getString = appContext::getString
         )
     }
 
@@ -47,7 +49,8 @@ class AppContainer(
             contentResolver = contentResolver,
             source = ContactsContractDeviceGroupSource(contentResolver),
             repository = groupsRepository,
-            appErrorReporter = appErrorReporter
+            appErrorReporter = appErrorReporter,
+            getString = appContext::getString
         )
     }
 }

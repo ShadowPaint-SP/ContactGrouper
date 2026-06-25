@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import de.drvlabs.contactgrouper.AppError
 import de.drvlabs.contactgrouper.AppErrorOrigin
 import de.drvlabs.contactgrouper.AppErrorReporter
+import de.drvlabs.contactgrouper.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlin.random.Random
@@ -15,6 +16,7 @@ class RoomGroupsRepository(
     private val ringtoneGateway: ContactRingtoneGateway,
     private val deviceGroupWriteGateway: DeviceGroupWriteGateway,
     private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
+    private val getString: (Int) -> String = { "" },
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) : GroupsRepository {
 
@@ -639,10 +641,10 @@ class RoomGroupsRepository(
         appErrorReporter.report(
             AppError.runtimeUnexpected(
                 origin = AppErrorOrigin.GroupMutation,
-                title = "Unexpected Error",
-                userMessage = "The app hit an unexpected error while updating contact groups.",
+                title = getString(R.string.app_error_unexpected_title),
+                userMessage = getString(R.string.app_error_group_mutation_message),
                 throwable = throwable,
-                heading = "Updating contact groups failed unexpectedly.",
+                heading = getString(R.string.app_error_group_mutation_heading),
                 context = mapOf("action" to action)
             )
         )

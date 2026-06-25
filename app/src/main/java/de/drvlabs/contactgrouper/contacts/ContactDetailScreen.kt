@@ -52,11 +52,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import de.drvlabs.contactgrouper.R
 import de.drvlabs.contactgrouper.groups.Group
 import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.GroupsListState
@@ -84,14 +86,20 @@ fun ContactDetailScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBackIosNew,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
                     }
                 },
                 actions = {
                     val editableGroups = groupState.groups.filter { it.isMembershipEditable }
                     if (editableGroups.isNotEmpty()) {
                         IconButton(onClick = { showManageGroupsDialog = true }) {
-                            Icon(Icons.Default.GroupAdd, contentDescription = "Manage groups")
+                            Icon(
+                                Icons.Default.GroupAdd,
+                                contentDescription = stringResource(R.string.contacts_manage_groups)
+                            )
                         }
                     }
                 }
@@ -105,7 +113,7 @@ fun ContactDetailScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Contact not found.")
+                Text(stringResource(R.string.contact_not_found))
             }
             return@Scaffold
         }
@@ -131,7 +139,7 @@ fun ContactDetailScreen(
 
             if (contact.phoneNumbers.isNotEmpty()) {
                 item {
-                    DetailSection(title = "Phone") {
+                    DetailSection(title = stringResource(R.string.contact_section_phone)) {
                         contact.phoneNumbers.forEach { item ->
                             DetailItem(
                                 icon = Icons.Default.Phone,
@@ -144,7 +152,7 @@ fun ContactDetailScreen(
             }
             if (contact.emails.isNotEmpty()) {
                 item {
-                    DetailSection(title = "Email") {
+                    DetailSection(title = stringResource(R.string.contact_section_email)) {
                         contact.emails.forEach { item ->
                             DetailItem(
                                 icon = Icons.Default.Email,
@@ -157,7 +165,7 @@ fun ContactDetailScreen(
             }
             if (contact.addresses.isNotEmpty()) {
                 item {
-                    DetailSection(title = "Address") {
+                    DetailSection(title = stringResource(R.string.contact_section_address)) {
                         contact.addresses.forEach { address ->
                             DetailItem(
                                 icon = Icons.Default.LocationOn,
@@ -170,16 +178,17 @@ fun ContactDetailScreen(
             }
 
             item {
-                DetailSection(title = "Ringtone") {
+                DetailSection(title = stringResource(R.string.contact_section_ringtone)) {
                     val context = LocalContext.current
+                    val defaultRingtoneTitle = stringResource(R.string.contact_default_ringtone)
                     val title = contact.customRingtone?.let { ringtoneValue ->
                         val ringtone = RingtoneManager.getRingtone(context, ringtoneValue.toUri())
                         ringtone?.getTitle(context)
-                    } ?: "Default"
+                    } ?: defaultRingtoneTitle
 
                     DetailItem(
                         icon = Icons.Default.PhoneInTalk,
-                        value = title ?: "Default",
+                        value = title ?: defaultRingtoneTitle,
                         type = null
                     )
                 }
@@ -187,7 +196,7 @@ fun ContactDetailScreen(
 
             if (contactGroups.isNotEmpty()) {
                 item {
-                    DetailSection(title = "Groups") {
+                    DetailSection(title = stringResource(R.string.contact_section_groups)) {
                         contactGroups.forEach { group ->
                             DetailGroupItem(
                                 group = group,
@@ -202,9 +211,9 @@ fun ContactDetailScreen(
                 }
             } else if (editableGroups.isNotEmpty()) {
                 item {
-                    DetailSection(title = "Groups") {
+                    DetailSection(title = stringResource(R.string.contact_section_groups)) {
                         Text(
-                            text = "This contact is not in any group yet.",
+                            text = stringResource(R.string.contact_no_groups),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -334,7 +343,10 @@ private fun DetailGroupItem(
         )
         if (group.isMembershipEditable) {
             IconButton(onClick = onRemove) {
-                Icon(Icons.Default.DeleteForever, contentDescription = "Remove from group")
+                Icon(
+                    Icons.Default.DeleteForever,
+                    contentDescription = stringResource(R.string.contact_remove_from_group)
+                )
             }
         }
     }
@@ -357,7 +369,7 @@ private fun ManageContactGroupsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manage Groups") },
+        title = { Text(stringResource(R.string.contacts_manage_groups)) },
         text = {
             LazyColumn {
                 items(groups) { group ->
@@ -406,40 +418,43 @@ private fun ManageContactGroupsDialog(
                 },
                 enabled = hasChanges
             ) {
-                Text("Save")
+                Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
 }
 
+@Composable
 private fun getPhoneTypeLabel(type: Int): String {
     return when (type) {
-        ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> "Home"
-        ContactsContract.CommonDataKinds.Phone.TYPE_WORK -> "Work"
-        ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> "Mobile"
-        ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> "Main"
-        else -> "Other"
+        ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> stringResource(R.string.contact_type_home)
+        ContactsContract.CommonDataKinds.Phone.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> stringResource(R.string.contact_type_mobile)
+        ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> stringResource(R.string.contact_type_main)
+        else -> stringResource(R.string.contact_type_other)
     }
 }
 
+@Composable
 private fun getEmailTypeLabel(type: Int): String {
     return when (type) {
-        ContactsContract.CommonDataKinds.Email.TYPE_HOME -> "Home"
-        ContactsContract.CommonDataKinds.Email.TYPE_WORK -> "Work"
-        ContactsContract.CommonDataKinds.Email.TYPE_MOBILE -> "Mobile"
-        else -> "Other"
+        ContactsContract.CommonDataKinds.Email.TYPE_HOME -> stringResource(R.string.contact_type_home)
+        ContactsContract.CommonDataKinds.Email.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        ContactsContract.CommonDataKinds.Email.TYPE_MOBILE -> stringResource(R.string.contact_type_mobile)
+        else -> stringResource(R.string.contact_type_other)
     }
 }
 
+@Composable
 private fun getAddressTypeLabel(type: Int): String {
     return when (type) {
-        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_HOME -> "Home"
-        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK -> "Work"
-        else -> "Other"
+        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_HOME -> stringResource(R.string.contact_type_home)
+        ContactsContract.CommonDataKinds.StructuredPostal.TYPE_WORK -> stringResource(R.string.contact_type_work)
+        else -> stringResource(R.string.contact_type_other)
     }
 }

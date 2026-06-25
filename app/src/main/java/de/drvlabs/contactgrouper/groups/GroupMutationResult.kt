@@ -1,5 +1,8 @@
 package de.drvlabs.contactgrouper.groups
 
+import androidx.annotation.StringRes
+import de.drvlabs.contactgrouper.R
+
 enum class GroupMutationAction {
     CREATE_GROUP,
     ASSIGN_CONTACTS,
@@ -23,49 +26,30 @@ sealed interface GroupMutationResult {
 val GroupMutationResult.isSuccess: Boolean
     get() = this is GroupMutationResult.Success
 
-fun GroupMutationResult.userMessage(): String? {
+@StringRes
+fun GroupMutationResult.userMessageResId(): Int? {
     return when (this) {
         GroupMutationResult.Success -> null
-        GroupMutationResult.PermissionDenied -> {
-            "Contacts permission is required to complete this action."
-        }
+        GroupMutationResult.PermissionDenied -> R.string.mutation_permission_denied
 
-        GroupMutationResult.Conflict -> {
-            "The contacts database changed while this action was running. Please try again."
-        }
+        GroupMutationResult.Conflict -> R.string.mutation_conflict
 
-        GroupMutationResult.InvalidRequest -> {
-            "This action could not be completed."
-        }
+        GroupMutationResult.InvalidRequest -> R.string.mutation_invalid_request
 
         is GroupMutationResult.ProviderWriteFailed -> when (action) {
-            GroupMutationAction.CREATE_GROUP -> {
-                "The group was created in the app, but syncing it to device contacts failed."
-            }
+            GroupMutationAction.CREATE_GROUP -> R.string.mutation_create_group_provider_failed
 
-            GroupMutationAction.ASSIGN_CONTACTS -> {
-                "The contacts were updated in the app, but device contact syncing failed."
-            }
+            GroupMutationAction.ASSIGN_CONTACTS -> R.string.mutation_assign_contacts_provider_failed
 
-            GroupMutationAction.SET_CONTACT_GROUPS -> {
-                "The contact's groups were updated in the app, but device contact syncing failed."
-            }
+            GroupMutationAction.SET_CONTACT_GROUPS -> R.string.mutation_set_contact_groups_provider_failed
 
-            GroupMutationAction.REMOVE_MEMBERSHIP -> {
-                "The contact was updated in the app, but device contact syncing failed."
-            }
+            GroupMutationAction.REMOVE_MEMBERSHIP -> R.string.mutation_remove_membership_provider_failed
 
-            GroupMutationAction.CHANGE_RINGTONE -> {
-                "The group ringtone was saved, but applying it to contacts failed."
-            }
+            GroupMutationAction.CHANGE_RINGTONE -> R.string.mutation_change_ringtone_provider_failed
 
-            GroupMutationAction.DELETE_GROUP -> {
-                "Deleting the group from device contacts failed."
-            }
+            GroupMutationAction.DELETE_GROUP -> R.string.mutation_delete_group_provider_failed
 
-            GroupMutationAction.SYNC_DEVICE_GROUPS -> {
-                "Syncing device contact groups failed."
-            }
+            GroupMutationAction.SYNC_DEVICE_GROUPS -> R.string.mutation_sync_device_groups_provider_failed
         }
     }
 }

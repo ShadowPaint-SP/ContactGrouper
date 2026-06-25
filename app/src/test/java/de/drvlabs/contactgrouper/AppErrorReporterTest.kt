@@ -10,6 +10,7 @@ class AppErrorReporterTest {
     fun `startup fatal error includes classification and cause details`() {
         val error = AppError.startupFatal(
             origin = AppErrorOrigin.Bootstrap,
+            title = "App Failed to Start",
             userMessage = "The app hit an unexpected error during startup.",
             throwable = IllegalStateException(
                 "boom",
@@ -37,6 +38,7 @@ class AppErrorReporterTest {
         reporter.report(
             AppError.runtimeUnexpected(
                 origin = AppErrorOrigin.GroupMutation,
+                title = "Unexpected Error",
                 userMessage = "Updating contact groups failed unexpectedly.",
                 throwable = IllegalArgumentException("broken mutation")
             )
@@ -57,6 +59,7 @@ class AppErrorReporterTest {
         reporter.report(
             AppError.startupFatal(
                 origin = AppErrorOrigin.ContactsImport,
+                title = "App Failed to Start",
                 userMessage = "Loading contacts failed during startup.",
                 throwable = IllegalStateException("boom")
             )

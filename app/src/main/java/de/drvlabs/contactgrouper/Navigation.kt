@@ -1,5 +1,6 @@
 package de.drvlabs.contactgrouper
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Groups
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -25,19 +27,22 @@ sealed class Screen(val route: String, val selected: ImageVector, val unselected
         route: String,
         selected: ImageVector,
         unselected: ImageVector,
-        val graphRoute: String
+        val graphRoute: String,
+        @StringRes val labelResId: Int
     ) : Screen(route, selected, unselected) {
         data object Contacts : NavBarScreen(
             "Contacts",
             Icons.Filled.Person,
             Icons.Outlined.Person,
-            "contacts_graph"
+            "contacts_graph",
+            R.string.nav_contacts
         )
         data object Groups : NavBarScreen(
             "Groups",
             Icons.Filled.Groups,
             Icons.Outlined.Groups,
-            "groups_graph"
+            "groups_graph",
+            R.string.nav_groups
         )
     }
 
@@ -75,14 +80,15 @@ fun BottomNavigation(navController: NavHostController) {
 
         navbarItems.forEach { screen ->
             val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+            val label = stringResource(screen.labelResId)
             NavigationBarItem(
                 icon = {
                     Icon(
                         if (isSelected) screen.selected else screen.unselected,
-                        contentDescription = screen.route
+                        contentDescription = label
                     )
                 },
-                label = { Text(screen.route) },
+                label = { Text(label) },
                 selected = isSelected,
                 onClick = {
                     navController.navigate(screen.graphRoute) {
