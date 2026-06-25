@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -329,6 +330,13 @@ fun AddGroupScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(nameErrorMessageResId) {
+        if (nameErrorMessageResId != null) {
+            delay(2_000)
+            nameErrorMessageResId = null
+        }
+    }
+
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = { result ->
@@ -386,58 +394,62 @@ fun AddGroupScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp)
         ) {
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = {
-                    onNameChange(it)
-                    nameErrorMessageResId = null
-                },
-                label = { Text(stringResource(R.string.groups_name_label)) },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                isError = nameErrorMessageResId != null,
-                singleLine = true
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                nameErrorMessageResId?.let { messageResId ->
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = {
+                        onNameChange(it)
+                        nameErrorMessageResId = null
+                    },
+                    label = { Text(stringResource(R.string.groups_name_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = nameErrorMessageResId != null,
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = {
+                        ringtonePickerLauncher.launch(Intent(RingtoneManager.ACTION_RINGTONE_PICKER))
+                    }
+                ) {
                     Text(
-                        text = stringResource(messageResId),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyLarge
+                        if (state.ringtoneUri == null) {
+                            stringResource(R.string.groups_assign_ringtone)
+                        } else {
+                            stringResource(R.string.groups_change_ringtone)
+                        }
                     )
                 }
-            }
 
-            Button(
-                onClick = {
-                    ringtonePickerLauncher.launch(Intent(RingtoneManager.ACTION_RINGTONE_PICKER))
+                state.ringtoneUri?.let {
+                    val ringtone = RingtoneManager.getRingtone(context, it)
+                    val title = ringtone.getTitle(context)
+                    Text(stringResource(R.string.groups_ringtone_selected, title))
                 }
-            ) {
-                Text(
-                    if (state.ringtoneUri == null) {
-                        stringResource(R.string.groups_assign_ringtone)
-                    } else {
-                        stringResource(R.string.groups_change_ringtone)
-                    }
-                )
             }
 
-            state.ringtoneUri?.let {
-                val ringtone = RingtoneManager.getRingtone(context, it)
-                val title = ringtone.getTitle(context)
-                Text(stringResource(R.string.groups_ringtone_selected, title))
+            nameErrorMessageResId?.let { messageResId ->
+                Text(
+                    text = stringResource(messageResId),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .background(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                )
             }
         }
     }
