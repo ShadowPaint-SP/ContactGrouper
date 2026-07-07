@@ -3,6 +3,7 @@
 
     <string name="nav_contacts">Kontakte</string>
     <string name="nav_groups">Gruppen</string>
+    <string name="nav_settings">Einstellungen</string>
 
     <string name="action_ok">OK</string>
     <string name="action_cancel">Abbrechen</string>
@@ -15,6 +16,12 @@
     <string name="permission_required_title">Berechtigung erforderlich</string>
     <string name="permission_permanently_denied_message">Diese App benoetigt Zugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden. Bitte aktiviere die Berechtigungen in den App-Einstellungen.</string>
     <string name="permission_request_message">Diese App benoetigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden.</string>
+
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_prefer_nickname_display_name">Spitznamen als Kontaktnamen verwenden</string>
+    <string name="settings_prefer_nickname_display_name_summary">Zeigt den Spitznamen vor dem vollstaendigen Namen, wenn ein Spitzname vorhanden ist.</string>
+    <string name="settings_auto_sync_device_group_changes">Geraetegruppen automatisch synchronisieren</string>
+    <string name="settings_auto_sync_device_group_changes_summary">Haelt lokale Gruppen aktuell, wenn Geraetekontaktgruppen ausserhalb dieser App geaendert werden.</string>
 
     <string name="app_error_start_failed_title">App konnte nicht gestartet werden</string>
     <string name="app_error_unexpected_title">Unerwarteter Fehler</string>
