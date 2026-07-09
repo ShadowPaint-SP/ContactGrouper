@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -67,13 +68,15 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import de.drvlabs.contactgrouper.R
 import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.contacts.ContactList
 import de.drvlabs.contactgrouper.contacts.ContactsListState
+import de.drvlabs.contactgrouper.search.SearchTextField
+import de.drvlabs.contactgrouper.search.filterGroupsBySearchQuery
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -90,11 +93,19 @@ fun GroupsMainScreen(
     val coroutineScope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedGroups by rememberSaveable { mutableStateOf(emptySet<Int>()) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     val minimumRefreshIndicatorMillis = 350L
     val isInSelectionMode = selectedGroups.isNotEmpty()
     val selectedGroupModels = groupState.groups.filter { it.id in selectedGroups }
     val deletableSelectedGroups = selectedGroupModels.filter { it.canDelete }
+    val filteredGroups = remember(groupState.groups, allContacts, searchQuery) {
+        filterGroupsBySearchQuery(
+            groups = groupState.groups,
+            contacts = allContacts,
+            query = searchQuery
+        )
+    }
 
     BackHandler(enabled = isInSelectionMode) {
         selectedGroups = emptySet()
@@ -105,7 +116,11 @@ fun GroupsMainScreen(
         selectedGroups = selectedGroups intersect groupIds
     }
 
-    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+    ) {
         PullToRefreshBox(
             modifier = Modifier.fillMaxSize(),
             isRefreshing = isRefreshing,
@@ -129,43 +144,62 @@ fun GroupsMainScreen(
                 }
             }
         ) {
-            if (groupState.groups.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(R.string.groups_empty),
-                        fontSize = 18.sp
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(groupState.groups) { group ->
-                        val memberCount = allContacts.count { group.id in it.groupIds }
-                        GroupCard(
-                            group = group,
-                            memberCount = memberCount,
-                            isSelected = group.id in selectedGroups,
-                            onClick = {
-                                if (isInSelectionMode) {
-                                    selectedGroups = if (group.id in selectedGroups) {
-                                        selectedGroups - group.id
-                                    } else {
-                                        selectedGroups + group.id
-                                    }
-                                } else {
-                                    navController.navigate(Screen.GroupDetails.createRoute(group.id))
-                                }
-                            },
-                            onLongClick = {
-                                selectedGroups = selectedGroups + group.id
-                            }
+            Column(modifier = Modifier.fillMaxSize()) {
+                SearchTextField(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    label = stringResource(R.string.groups_search_label),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+
+                when {
+                    groupState.groups.isEmpty() -> {
+                        GroupsEmptyMessage(
+                            messageResId = R.string.groups_empty,
+                            modifier = Modifier.weight(1f)
                         )
+                    }
+                    filteredGroups.isEmpty() -> {
+                        GroupsEmptyMessage(
+                            messageResId = R.string.groups_search_empty,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredGroups) { group ->
+                                val memberCount = allContacts.count { group.id in it.groupIds }
+                                GroupCard(
+                                    group = group,
+                                    memberCount = memberCount,
+                                    isSelected = group.id in selectedGroups,
+                                    onClick = {
+                                        if (isInSelectionMode) {
+                                            selectedGroups = if (group.id in selectedGroups) {
+                                                selectedGroups - group.id
+                                            } else {
+                                                selectedGroups + group.id
+                                            }
+                                        } else {
+                                            navController.navigate(
+                                                Screen.GroupDetails.createRoute(group.id)
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {
+                                        selectedGroups = selectedGroups + group.id
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -265,6 +299,26 @@ fun GroupsMainScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun GroupsEmptyMessage(
+    @StringRes messageResId: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(messageResId),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
