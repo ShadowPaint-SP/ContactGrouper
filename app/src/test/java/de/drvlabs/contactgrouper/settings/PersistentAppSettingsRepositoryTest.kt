@@ -1,6 +1,8 @@
 package de.drvlabs.contactgrouper.settings
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersistentAppSettingsRepositoryTest {
@@ -47,6 +49,25 @@ class PersistentAppSettingsRepositoryTest {
                 hasSeenMultipleGroupsRingtoneInfo = true
             ),
             repository.settings.value
+        )
+    }
+
+    @Test
+    fun `multiple groups ringtone info acknowledgement persists`() {
+        val store = InMemoryAppSettingsStore()
+        val repository = PersistentAppSettingsRepository(store)
+
+        assertFalse(repository.settings.value.hasSeenMultipleGroupsRingtoneInfo)
+
+        repository.setHasSeenMultipleGroupsRingtoneInfo(true)
+
+        assertTrue(repository.settings.value.hasSeenMultipleGroupsRingtoneInfo)
+        assertTrue(store.savedSettings.hasSeenMultipleGroupsRingtoneInfo)
+        assertTrue(
+            PersistentAppSettingsRepository(store)
+                .settings
+                .value
+                .hasSeenMultipleGroupsRingtoneInfo
         )
     }
 

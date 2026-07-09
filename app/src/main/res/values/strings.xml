@@ -47,6 +47,8 @@
     <string name="contacts_no_editable_groups">Create a local group first. Imported read-only groups cannot be changed here.</string>
     <string name="contacts_selected">Selected</string>
     <string name="contacts_controls_ringtone">Controls ringtone</string>
+    <string name="multiple_groups_ringtone_info_title">Multiple Group Ringtones</string>
+    <string name="multiple_groups_ringtone_info_message">For %1$s, &quot;%2$s&quot; controls the ringtone because it is the newest assigned group with a ringtone.</string>
     <string name="contact_not_found">Contact not found.</string>
     <string name="contact_unknown_name">Unnamed contact</string>
     <string name="contact_section_phone">Phone</string>

@@ -47,6 +47,8 @@
     <string name="contacts_no_editable_groups">Erstelle zuerst eine lokale Gruppe. Importierte schreibgeschuetzte Gruppen koennen hier nicht geaendert werden.</string>
     <string name="contacts_selected">Ausgewaehlt</string>
     <string name="contacts_controls_ringtone">Steuert den Klingelton</string>
+    <string name="multiple_groups_ringtone_info_title">Klingeltoene bei mehreren Gruppen</string>
+    <string name="multiple_groups_ringtone_info_message">Bei %1$s steuert &quot;%2$s&quot; den Klingelton, weil diese Gruppe die zuletzt zugewiesene Gruppe mit Klingelton ist.</string>
     <string name="contact_not_found">Kontakt nicht gefunden.</string>
     <string name="contact_unknown_name">Unbenannter Kontakt</string>
     <string name="contact_section_phone">Telefon</string>
