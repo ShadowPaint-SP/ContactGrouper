@@ -132,7 +132,8 @@ class MainActivity : ComponentActivity() {
             this,
             ContactsViewModel.factory(
                 contactsDataSource = appContainer.contactsDataSource,
-                repository = appContainer.groupsRepository
+                repository = appContainer.groupsRepository,
+                settingsRepository = appContainer.appSettingsRepository
             )
         )[ContactsViewModel::class.java]
         val groupViewModel = ViewModelProvider(

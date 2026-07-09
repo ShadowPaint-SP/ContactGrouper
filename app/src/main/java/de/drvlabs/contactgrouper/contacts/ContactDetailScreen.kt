@@ -218,6 +218,13 @@ fun ContactDetailScreen(
             if (contact.hasPersonalDetails()) {
                 item {
                     DetailSection(title = "Personal") {
+                        if (contact.hasProviderDisplayNameDetail()) {
+                            DetailItem(
+                                icon = Icons.Default.Person,
+                                value = contact.providerDisplayName,
+                                type = "Display name"
+                            )
+                        }
                         contact.nickname?.let { nickname ->
                             DetailItem(
                                 icon = Icons.Default.Person,
@@ -615,7 +622,13 @@ private fun ManageContactGroupsDialog(
 }
 
 private fun Contact.hasPersonalDetails(): Boolean {
-    return nickname != null || structuredName?.details().orEmpty().isNotEmpty()
+    return hasProviderDisplayNameDetail() ||
+        nickname != null ||
+        structuredName?.details().orEmpty().isNotEmpty()
+}
+
+private fun Contact.hasProviderDisplayNameDetail(): Boolean {
+    return providerDisplayName.isNotBlank() && providerDisplayName != displayName
 }
 
 private fun StructuredName.details(): List<Pair<String, String>> {

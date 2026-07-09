@@ -138,4 +138,39 @@ class ContactDetailScreenTest {
         composeRule.waitUntil(timeoutMillis = 5_000) { savedGroupIds != null }
         assertEquals(listOf(1, 2), savedGroupIds)
     }
+
+    @Test
+    fun effectiveDisplayNameDrivesHeaderAndConfirmationWhilePersonalShowsProviderName() {
+        composeRule.setContent {
+            ContactDetailScreen(
+                navController = rememberNavController(),
+                contactId = 42L,
+                contactState = ContactsListState(
+                    contacts = listOf(
+                        Contact(
+                            id = 42L,
+                            displayName = "Bobby",
+                            providerDisplayName = "Robert Smith",
+                            photoUri = null,
+                            thumbnailUri = null,
+                            customRingtone = null,
+                            nickname = "Bobby"
+                        )
+                    )
+                ),
+                groupState = GroupsListState(),
+                onSaveGroups = { GroupMutationResult.Success },
+                onRemoveGroup = { GroupMutationResult.Success },
+                onEditContact = {},
+                onDeleteContact = { true }
+            )
+        }
+
+        composeRule.onAllNodesWithText("Bobby").assertCountEquals(2)
+        composeRule.onAllNodesWithText("Robert Smith").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Display name").assertCountEquals(1)
+
+        composeRule.onNodeWithContentDescription("Delete contact").performClick()
+        composeRule.onAllNodesWithText("This removes Bobby from device contacts.").assertCountEquals(1)
+    }
 }

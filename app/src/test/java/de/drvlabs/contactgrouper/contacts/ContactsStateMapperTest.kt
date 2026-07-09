@@ -3,6 +3,7 @@ package de.drvlabs.contactgrouper.contacts
 import androidx.compose.ui.graphics.Color
 import de.drvlabs.contactgrouper.groups.Group
 import de.drvlabs.contactgrouper.groups.GroupMembership
+import de.drvlabs.contactgrouper.settings.AppSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -76,6 +77,68 @@ class ContactsStateMapperTest {
     }
 
     @Test
+    fun `prefer nickname setting uses nonblank nickname as display name`() {
+        val state = ContactsStateMapper.build(
+            contacts = listOf(
+                contact(
+                    id = 42L,
+                    displayName = "Robert Smith",
+                    nickname = "Bobby"
+                )
+            ),
+            groups = emptyList(),
+            memberships = emptyList(),
+            settings = AppSettings(preferNicknameDisplayName = true)
+        )
+
+        val contact = state.contacts.single()
+        assertEquals("Bobby", contact.displayName)
+        assertEquals("Robert Smith", contact.providerDisplayName)
+        assertEquals("Bobby", contact.nickname)
+    }
+
+    @Test
+    fun `prefer nickname setting falls back to provider display name for blank nickname`() {
+        val state = ContactsStateMapper.build(
+            contacts = listOf(
+                contact(
+                    id = 42L,
+                    displayName = "Robert Smith",
+                    nickname = "   "
+                )
+            ),
+            groups = emptyList(),
+            memberships = emptyList(),
+            settings = AppSettings(preferNicknameDisplayName = true)
+        )
+
+        val contact = state.contacts.single()
+        assertEquals("Robert Smith", contact.displayName)
+        assertEquals("Robert Smith", contact.providerDisplayName)
+    }
+
+    @Test
+    fun `disabled prefer nickname setting keeps provider display name`() {
+        val state = ContactsStateMapper.build(
+            contacts = listOf(
+                contact(
+                    id = 42L,
+                    displayName = "Robert Smith",
+                    nickname = "Bobby"
+                )
+            ),
+            groups = emptyList(),
+            memberships = emptyList(),
+            settings = AppSettings(preferNicknameDisplayName = false)
+        )
+
+        val contact = state.contacts.single()
+        assertEquals("Robert Smith", contact.displayName)
+        assertEquals("Robert Smith", contact.providerDisplayName)
+        assertEquals("Bobby", contact.nickname)
+    }
+
+    @Test
     fun `large imports keep every contact and assigned state stable`() {
         val localRingtone = group(id = 1, name = "Family")
         val silentGroup = group(id = 2, name = "Work")
@@ -129,14 +192,16 @@ class ContactsStateMapperTest {
 
     private fun contact(
         id: Long,
-        displayName: String
+        displayName: String,
+        nickname: String? = null
     ): Contact {
         return Contact(
             id = id,
             displayName = displayName,
             photoUri = null,
             thumbnailUri = null,
-            customRingtone = null
+            customRingtone = null,
+            nickname = nickname
         )
     }
 

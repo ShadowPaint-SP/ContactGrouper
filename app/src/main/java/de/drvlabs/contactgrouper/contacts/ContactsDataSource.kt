@@ -207,13 +207,15 @@ class ContactsDataSource(
 
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idIndex)
+                val providerDisplayName = resolveContactDisplayName(
+                    primaryName = cursor.getString(primaryNameIndex),
+                    displayName = cursor.getString(displayNameIndex),
+                    fallbackName = getString(R.string.contact_unknown_name)
+                )
                 contactMap[id] = Contact(
                     id = id,
-                    displayName = resolveContactDisplayName(
-                        primaryName = cursor.getString(primaryNameIndex),
-                        displayName = cursor.getString(displayNameIndex),
-                        fallbackName = getString(R.string.contact_unknown_name)
-                    ),
+                    displayName = providerDisplayName,
+                    providerDisplayName = providerDisplayName,
                     photoUri = cursor.getString(photoIndex),
                     thumbnailUri = cursor.getString(thumbnailIndex),
                     photoVersion = cursor.getNullableLong(photoFileIdIndex)

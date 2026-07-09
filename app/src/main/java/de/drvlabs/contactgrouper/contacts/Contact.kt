@@ -74,7 +74,8 @@ data class InstantMessage(
  * that can be fetched from the Android ContactsContract provider.
  *
  * @property id The unique identifier for the contact.
- * @property displayName The primary name to display for the contact.
+ * @property displayName The effective name to display for the contact.
+ * @property providerDisplayName The display name returned by the contacts provider.
  * @property photoUri A string URI for the contact's full-size photo.
  * @property thumbnailUri A string URI for the contact's smaller thumbnail photo.
  * @property photoVersion The provider photo identifier used to refresh cached image loads.
@@ -92,6 +93,7 @@ data class Contact(
     // Core Identifiers
     val id: Long,
     val displayName: String,
+    val providerDisplayName: String = displayName,
     val photoUri: String?,
     val thumbnailUri: String?,
     val photoVersion: Long? = null,
