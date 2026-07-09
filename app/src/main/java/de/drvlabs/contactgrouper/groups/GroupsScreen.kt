@@ -715,3 +715,54 @@ fun DeleteGroupConfirmationDialog(
         }
     )
 }
+
+@Composable
+fun DeviceSyncRingtoneConfirmationDialog(
+    confirmation: DeviceSyncRingtoneConfirmation,
+    onCancel: () -> Unit,
+    onAccept: () -> Unit
+) {
+    val ringtoneCount = pluralStringResource(
+        R.plurals.device_sync_ringtone_confirmation_ringtone_count,
+        confirmation.ringtoneCount,
+        confirmation.ringtoneCount
+    )
+    val contactCount = pluralStringResource(
+        R.plurals.device_sync_ringtone_confirmation_contact_count,
+        confirmation.contactCount,
+        confirmation.contactCount
+    )
+    val groupCount = pluralStringResource(
+        R.plurals.device_sync_ringtone_confirmation_group_count,
+        confirmation.groupCount,
+        confirmation.groupCount
+    )
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.device_sync_ringtone_confirmation_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(
+                        R.string.device_sync_ringtone_confirmation_message,
+                        ringtoneCount,
+                        contactCount,
+                        groupCount
+                    )
+                )
+                Text(stringResource(R.string.device_sync_ringtone_confirmation_settings_hint))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onAccept) {
+                Text(stringResource(R.string.action_accept))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        }
+    )
+}

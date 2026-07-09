@@ -34,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -55,6 +56,7 @@ import de.drvlabs.contactgrouper.contacts.ContactsMainScreen
 import de.drvlabs.contactgrouper.contacts.ContactsViewModel
 import de.drvlabs.contactgrouper.groups.AddGroupScreen
 import de.drvlabs.contactgrouper.groups.AddGroupViewModel
+import de.drvlabs.contactgrouper.groups.DeviceSyncRingtoneConfirmationDialog
 import de.drvlabs.contactgrouper.groups.GroupDetailScreen
 import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.GroupViewModel
@@ -65,6 +67,7 @@ import de.drvlabs.contactgrouper.permission.ContactsPermissionEvaluator
 import de.drvlabs.contactgrouper.settings.SettingsRoute
 import de.drvlabs.contactgrouper.settings.SettingsViewModel
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -206,6 +209,7 @@ private fun MainActivityContent(
 
     val navController = rememberNavController()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val bottomBarRoutes = navbarItems.map { it.route }
@@ -217,6 +221,8 @@ private fun MainActivityContent(
         val appContainer = bootstrap.appContainer
         val contactState by contactsViewModel.state.collectAsState()
         val groupState by groupViewModel.state.collectAsState()
+        val pendingDeviceSyncRingtoneConfirmation by
+            groupViewModel.pendingDeviceSyncRingtoneConfirmation.collectAsState()
 
         LaunchedEffect(groupViewModel) {
             groupViewModel.messages.collect { messageResId ->
@@ -431,6 +437,18 @@ private fun MainActivityContent(
                     }
                 }
             }
+        }
+
+        pendingDeviceSyncRingtoneConfirmation?.let { confirmation ->
+            DeviceSyncRingtoneConfirmationDialog(
+                confirmation = confirmation,
+                onCancel = groupViewModel::cancelPendingDeviceSyncRingtoneChanges,
+                onAccept = {
+                    coroutineScope.launch {
+                        groupViewModel.acceptPendingDeviceSyncRingtoneChanges()
+                    }
+                }
+            )
         }
     } else {
         Scaffold(

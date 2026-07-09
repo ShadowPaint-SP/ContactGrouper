@@ -58,6 +58,7 @@ class AppContainer(
             contentResolver = contentResolver,
             source = ContactsContractDeviceGroupSource(contentResolver),
             repository = groupsRepository,
+            settingsRepository = appSettingsRepository,
             appErrorReporter = appErrorReporter,
             getString = appContext::getString
         )

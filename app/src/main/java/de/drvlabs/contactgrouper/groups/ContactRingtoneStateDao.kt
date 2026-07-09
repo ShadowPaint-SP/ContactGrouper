@@ -16,4 +16,7 @@ interface ContactRingtoneStateDao {
 
     @Query("SELECT * FROM ContactRingtoneState WHERE contactId IN (:contactIds)")
     suspend fun getByContactIds(contactIds: List<Long>): List<ContactRingtoneState>
+
+    @Query("SELECT * FROM ContactRingtoneState WHERE lastAppliedGroupId IS NOT NULL")
+    suspend fun getAppliedStates(): List<ContactRingtoneState>
 }
