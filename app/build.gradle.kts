@@ -16,8 +16,7 @@ val hasReleaseSigningConfig = listOf(
     "keyAlias",
     "keyPassword",
 ).all(keystoreProperties::containsKey)
-val releaseArtifactTasks = setOf(
-    "assembleRelease",
+val signedReleaseArtifactTasks = setOf(
     "bundleRelease",
     "copyReleaseBundleForPlay",
     "packageReleaseBundle",
@@ -25,7 +24,7 @@ val releaseArtifactTasks = setOf(
 )
 
 gradle.taskGraph.whenReady {
-    if (!hasReleaseSigningConfig && allTasks.any { it.name in releaseArtifactTasks }) {
+    if (!hasReleaseSigningConfig && allTasks.any { it.name in signedReleaseArtifactTasks }) {
         throw GradleException(
             "Release signing is not configured. Create keystore.properties from " +
                 "keystore.properties.example before building a Play release."
@@ -126,6 +125,15 @@ tasks.register<Copy>("copyReleaseBundleForPlay") {
     from(layout.buildDirectory.file("outputs/bundle/release/app-release.aab"))
     into(rootProject.layout.projectDirectory.dir("app/release"))
     rename { "contactgrouper-v$releaseVersionName.aab" }
+}
+
+tasks.register("printReleaseVersionName") {
+    group = "versioning"
+    description = "Prints the release version name used for GitHub release tags."
+
+    doLast {
+        println(releaseVersionName)
+    }
 }
 
 afterEvaluate {
