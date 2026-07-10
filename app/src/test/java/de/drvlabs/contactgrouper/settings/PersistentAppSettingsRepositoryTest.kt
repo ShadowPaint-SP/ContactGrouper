@@ -10,12 +10,10 @@ class PersistentAppSettingsRepositoryTest {
         val store = InMemoryAppSettingsStore()
         val repository = PersistentAppSettingsRepository(store)
 
-        repository.setPreferNicknameDisplayName(true)
         repository.setAutoSyncDeviceGroupChanges(true)
         repository.setHasSeenMultipleGroupsRingtoneInfo(true)
 
         val expected = AppSettings(
-            preferNicknameDisplayName = true,
             autoSyncDeviceGroupChanges = true,
             hasSeenMultipleGroupsRingtoneInfo = true
         )
@@ -31,7 +29,6 @@ class PersistentAppSettingsRepositoryTest {
         val repository = PersistentAppSettingsRepository(
             InMemoryAppSettingsStore(
                 AppSettings(
-                    preferNicknameDisplayName = true,
                     autoSyncDeviceGroupChanges = true,
                     hasSeenMultipleGroupsRingtoneInfo = true
                 )
@@ -42,7 +39,6 @@ class PersistentAppSettingsRepositoryTest {
 
         assertEquals(
             AppSettings(
-                preferNicknameDisplayName = true,
                 autoSyncDeviceGroupChanges = false,
                 hasSeenMultipleGroupsRingtoneInfo = true
             ),

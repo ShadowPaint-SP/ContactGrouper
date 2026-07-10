@@ -10,10 +10,6 @@ class PersistentAppSettingsRepository(
     private val mutableSettings = MutableStateFlow(store.load())
     override val settings: StateFlow<AppSettings> = mutableSettings.asStateFlow()
 
-    override fun setPreferNicknameDisplayName(enabled: Boolean) {
-        update { it.copy(preferNicknameDisplayName = enabled) }
-    }
-
     override fun setAutoSyncDeviceGroupChanges(enabled: Boolean) {
         update { it.copy(autoSyncDeviceGroupChanges = enabled) }
     }

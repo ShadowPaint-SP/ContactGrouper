@@ -26,9 +26,6 @@ class SettingsScreenTest {
 
             SettingsScreen(
                 settings = settings,
-                onPreferNicknameDisplayNameChange = {
-                    settings = settings.copy(preferNicknameDisplayName = it)
-                },
                 onAutoSyncDeviceGroupChangesChange = {
                     settings = settings.copy(autoSyncDeviceGroupChanges = it)
                 }
@@ -36,13 +33,7 @@ class SettingsScreenTest {
         }
 
         composeRule.onNodeWithText("Settings").assertExists()
-        composeRule.onNodeWithText("Use nickname as contact display name").assertExists()
         composeRule.onNodeWithText("Auto sync device group changes").assertExists()
-
-        composeRule.onNodeWithTag(PREFER_NICKNAME_SETTING_TAG)
-            .assertIsOff()
-            .performClick()
-            .assertIsOn()
 
         composeRule.onNodeWithTag(AUTO_SYNC_DEVICE_GROUPS_SETTING_TAG)
             .assertIsOff()

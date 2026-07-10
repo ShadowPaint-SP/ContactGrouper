@@ -8,10 +8,6 @@ class SettingsViewModel(
 ) : ViewModel() {
     val settings = repository.settings
 
-    fun setPreferNicknameDisplayName(enabled: Boolean) {
-        repository.setPreferNicknameDisplayName(enabled)
-    }
-
     fun setAutoSyncDeviceGroupChanges(enabled: Boolean) {
         repository.setAutoSyncDeviceGroupChanges(enabled)
     }

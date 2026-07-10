@@ -18,8 +18,6 @@
     <string name="permission_request_message">This app needs contact read and write access to organize groups and apply ringtones.</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_prefer_nickname_display_name">Use nickname as contact display name</string>
-    <string name="settings_prefer_nickname_display_name_summary">Show a contact\'s nickname before their full name when a nickname is available.</string>
     <string name="settings_auto_sync_device_group_changes">Auto sync device group changes</string>
     <string name="settings_auto_sync_device_group_changes_summary">Keep local groups aligned when device contact groups change outside this app.</string>
 
@@ -63,7 +61,6 @@
     <string name="contact_type_main">Main</string>
     <string name="contact_type_other">Other</string>
 
-    <string name="groups_empty">No groups yet.\nPull down to sync device groups or tap \'+\' to add one.</string>
     <string name="groups_delete_selected">Delete selected groups</string>
     <string name="groups_no_selected_deletable">No selected groups can be deleted</string>
     <string name="groups_add">Add Group</string>
