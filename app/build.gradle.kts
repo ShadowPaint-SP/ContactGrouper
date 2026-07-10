@@ -1,5 +1,4 @@
 import org.gradle.api.GradleException
-import org.gradle.api.tasks.Copy
 import java.util.Properties
 
 val releaseVersionCode = 2
@@ -19,7 +18,6 @@ val hasReleaseSigningConfig = listOf(
 val releaseArtifactTasks = setOf(
     "assembleRelease",
     "bundleRelease",
-    "copyReleaseBundleForPlay",
     "packageReleaseBundle",
     "signReleaseBundle",
 )
@@ -38,6 +36,10 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+}
+
+base {
+    archivesName = "contactgrouper-v$releaseVersionName"
 }
 
 android {
@@ -116,20 +118,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-}
-
-tasks.register<Copy>("copyReleaseBundleForPlay") {
-    group = "distribution"
-    description = "Copies the signed release App Bundle to a Play Console upload filename."
-    dependsOn("bundleRelease")
-
-    from(layout.buildDirectory.file("outputs/bundle/release/app-release.aab"))
-    into(rootProject.layout.projectDirectory.dir("app/release"))
-    rename { "contactgrouper-v$releaseVersionName.aab" }
-}
-
-afterEvaluate {
-    tasks.named("bundleRelease") {
-        finalizedBy("copyReleaseBundleForPlay")
-    }
 }
