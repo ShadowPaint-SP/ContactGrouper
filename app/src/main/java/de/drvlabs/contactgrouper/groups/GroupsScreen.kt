@@ -7,6 +7,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,13 +64,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import de.drvlabs.contactgrouper.R
 import de.drvlabs.contactgrouper.Screen
@@ -130,15 +136,11 @@ fun GroupsMainScreen(
             }
         ) {
             if (groupState.groups.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(R.string.groups_empty),
-                        fontSize = 18.sp
-                    )
-                }
+                EmptyGroupsArrow(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-58).dp, y = (-66).dp)
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -265,6 +267,49 @@ fun GroupsMainScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun EmptyGroupsArrow(modifier: Modifier = Modifier) {
+    val arrowColor = MaterialTheme.colorScheme.primary
+    Canvas(
+        modifier = modifier
+            .size(96.dp)
+            .clearAndSetSemantics { }
+    ) {
+        val stroke = Stroke(
+            width = 4.dp.toPx(),
+            cap = StrokeCap.Round,
+            join = StrokeJoin.Round
+        )
+        val arrow = Path().apply {
+            moveTo(size.width * 0.08f, size.height * 0.12f)
+            cubicTo(
+                size.width * 0.30f,
+                size.height * 0.08f,
+                size.width * 0.28f,
+                size.height * 0.48f,
+                size.width * 0.55f,
+                size.height * 0.52f
+            )
+            cubicTo(
+                size.width * 0.70f,
+                size.height * 0.55f,
+                size.width * 0.78f,
+                size.height * 0.72f,
+                size.width * 0.90f,
+                size.height * 0.86f
+            )
+        }
+        val arrowHead = Path().apply {
+            moveTo(size.width * 0.66f, size.height * 0.82f)
+            lineTo(size.width * 0.90f, size.height * 0.86f)
+            lineTo(size.width * 0.82f, size.height * 0.62f)
+        }
+
+        drawPath(arrow, color = arrowColor, style = stroke)
+        drawPath(arrowHead, color = arrowColor, style = stroke)
     }
 }
 

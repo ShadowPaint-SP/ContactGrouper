@@ -16,6 +16,10 @@ class SettingsViewModel(
         repository.setAutoSyncDeviceGroupChanges(enabled)
     }
 
+    fun acknowledgeMultipleGroupsRingtoneInfo() {
+        repository.setHasSeenMultipleGroupsRingtoneInfo(true)
+    }
+
     companion object {
         fun factory(repository: AppSettingsRepository): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {

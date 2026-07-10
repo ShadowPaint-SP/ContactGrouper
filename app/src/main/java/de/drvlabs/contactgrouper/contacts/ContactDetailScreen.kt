@@ -85,12 +85,15 @@ fun ContactDetailScreen(
     onSaveGroups: suspend (List<Int>) -> GroupMutationResult,
     onRemoveGroup: suspend (Int) -> GroupMutationResult,
     onEditContact: (Long) -> Unit,
-    onDeleteContact: suspend (Long) -> Boolean
+    onDeleteContact: suspend (Long) -> Boolean,
+    hasSeenMultipleGroupsRingtoneInfo: Boolean = true,
+    onMultipleGroupsRingtoneInfoAcknowledged: () -> Unit = {}
 ) {
     val contact = contactState.contacts.find { it.id == contactId }
     val groupsById = groupState.groups.associateBy { it.id }
     var showManageGroupsDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var multipleGroupsRingtoneInfo by remember { mutableStateOf<MultipleGroupsRingtoneInfo?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
@@ -386,9 +389,26 @@ fun ContactDetailScreen(
                     coroutineScope.launch {
                         val result = onSaveGroups(groupIds)
                         if (result.isSuccess) {
+                            multipleGroupsRingtoneInfo =
+                                findMultipleGroupsRingtoneInfoAfterAssignments(
+                                    contacts = contactState.contacts,
+                                    groups = groupState.groups,
+                                    assignedEditableGroupIdsByContact = mapOf(contact.id to groupIds),
+                                    hasSeenMultipleGroupsRingtoneInfo = hasSeenMultipleGroupsRingtoneInfo
+                                )
                             showManageGroupsDialog = false
                         }
                     }
+                }
+            )
+        }
+
+        multipleGroupsRingtoneInfo?.let { info ->
+            MultipleGroupsRingtoneInfoDialog(
+                info = info,
+                onAcknowledge = {
+                    multipleGroupsRingtoneInfo = null
+                    onMultipleGroupsRingtoneInfoAcknowledged()
                 }
             )
         }
