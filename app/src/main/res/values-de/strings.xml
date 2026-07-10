@@ -8,20 +8,20 @@
     <string name="action_ok">OK</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="action_save">Speichern</string>
-    <string name="action_back">Zurueck</string>
+    <string name="action_back">Zurück</string>
     <string name="action_accept">Akzeptieren</string>
     <string name="action_settings">Einstellungen</string>
-    <string name="action_open_settings">Einstellungen oeffnen</string>
+    <string name="action_open_settings">Einstellungen öffnen</string>
     <string name="action_grant_permissions">Berechtigungen erteilen</string>
-    <string name="action_clear_search">Suche loeschen</string>
+    <string name="action_clear_search">Suche löschen</string>
 
     <string name="permission_required_title">Berechtigung erforderlich</string>
-    <string name="permission_permanently_denied_message">Diese App benoetigt Zugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden. Bitte aktiviere die Berechtigungen in den App-Einstellungen.</string>
-    <string name="permission_request_message">Diese App benoetigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden.</string>
+    <string name="permission_permanently_denied_message">Diese App benötigt Zugriff auf Kontakte, um Gruppen zu verwalten und Klingeltöne anzuwenden. Bitte aktiviere die Berechtigungen in den App-Einstellungen.</string>
+    <string name="permission_request_message">Diese App benötigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltöne anzuwenden.</string>
 
     <string name="settings_title">Einstellungen</string>
-    <string name="settings_auto_sync_device_group_changes">Geraetegruppen automatisch synchronisieren</string>
-    <string name="settings_auto_sync_device_group_changes_summary">Wendet Klingelton-Aenderungen aus Geraetegruppen ohne Nachfrage an.</string>
+    <string name="settings_auto_sync_device_group_changes">Gerätegruppen automatisch synchronisieren</string>
+    <string name="settings_auto_sync_device_group_changes_summary">Wendet Klingelton-Änderungen aus Gerätegruppen ohne Nachfrage an.</string>
 
     <string name="app_error_start_failed_title">App konnte nicht gestartet werden</string>
     <string name="app_error_unexpected_title">Unerwarteter Fehler</string>
@@ -29,7 +29,7 @@
     <string name="app_error_group_sync_failed_title">Synchronisierung der Kontaktgruppen fehlgeschlagen</string>
     <string name="app_error_startup_message">Beim Start ist ein unerwarteter Fehler aufgetreten.</string>
     <string name="app_error_contacts_startup_message">Die App konnte deine Kontakte beim Start nicht laden.</string>
-    <string name="app_error_contacts_refresh_message">Das Aktualisieren der Kontakte ist unerwartet fehlgeschlagen. Die aktuelle Liste ist moeglicherweise veraltet.</string>
+    <string name="app_error_contacts_refresh_message">Das Aktualisieren der Kontakte ist unerwartet fehlgeschlagen. Die aktuelle Liste ist möglicherweise veraltet.</string>
     <string name="app_error_groups_startup_message">Die App konnte Kontaktgruppen beim Start nicht importieren.</string>
     <string name="app_error_groups_refresh_message">Das Aktualisieren der Kontaktgruppen ist unerwartet fehlgeschlagen.</string>
     <string name="app_error_group_mutation_message">Beim Aktualisieren der Kontaktgruppen ist ein unerwarteter Fehler aufgetreten.</string>
@@ -40,17 +40,17 @@
     <string name="app_error_groups_refresh_heading">Aktualisieren der Kontaktgruppen unerwartet fehlgeschlagen.</string>
     <string name="app_error_group_mutation_heading">Aktualisieren der Kontaktgruppen unerwartet fehlgeschlagen.</string>
     <string name="app_error_technical_details">Technische Details</string>
-    <string name="app_error_close_app">App schliessen</string>
+    <string name="app_error_close_app">App schließen</string>
 
     <string name="contacts_assign_groups">Gruppen zuweisen</string>
     <string name="contacts_search_label">Kontakte suchen</string>
     <string name="contacts_empty">Keine Kontakte gefunden.</string>
     <string name="contacts_search_empty">Keine Kontakte passen zu deiner Suche.</string>
     <string name="contacts_manage_groups">Gruppen verwalten</string>
-    <string name="contacts_no_editable_groups">Erstelle zuerst eine lokale Gruppe. Importierte schreibgeschuetzte Gruppen koennen hier nicht geaendert werden.</string>
-    <string name="contacts_selected">Ausgewaehlt</string>
+    <string name="contacts_no_editable_groups">Erstelle zuerst eine lokale Gruppe. Importierte schreibgeschützte Gruppen können hier nicht geändert werden.</string>
+    <string name="contacts_selected">Ausgewählt</string>
     <string name="contacts_controls_ringtone">Steuert den Klingelton</string>
-    <string name="multiple_groups_ringtone_info_title">Klingeltoene bei mehreren Gruppen</string>
+    <string name="multiple_groups_ringtone_info_title">Klingeltöne bei mehreren Gruppen</string>
     <string name="multiple_groups_ringtone_info_message">Bei %1$s steuert &quot;%2$s&quot; den Klingelton, weil diese Gruppe die zuletzt zugewiesene Gruppe mit Klingelton ist.</string>
     <string name="contact_not_found">Kontakt nicht gefunden.</string>
     <string name="contact_unknown_name">Unbenannter Kontakt</string>
@@ -68,59 +68,59 @@
     <string name="contact_type_main">Hauptnummer</string>
     <string name="contact_type_other">Andere</string>
 
-    <string name="groups_empty">Noch keine Gruppen.\nZiehe nach unten, um Geraetegruppen zu synchronisieren, oder tippe auf \'+\', um eine Gruppe hinzuzufuegen.</string>
+    <string name="groups_empty">Noch keine Gruppen.\nZiehe nach unten, um Gerätegruppen zu synchronisieren, oder tippe auf \'+\', um eine Gruppe hinzuzufügen.</string>
     <string name="groups_search_label">Gruppen suchen</string>
     <string name="groups_search_empty">Keine Gruppen passen zu deiner Suche.</string>
-    <string name="groups_delete_selected">Ausgewaehlte Gruppen loeschen</string>
-    <string name="groups_no_selected_deletable">Keine ausgewaehlten Gruppen koennen geloescht werden</string>
-    <string name="groups_add">Gruppe hinzufuegen</string>
-    <string name="groups_add_new">Neue Gruppe hinzufuegen</string>
+    <string name="groups_delete_selected">Ausgewählte Gruppen löschen</string>
+    <string name="groups_no_selected_deletable">Keine ausgewählten Gruppen können gelöscht werden</string>
+    <string name="groups_add">Gruppe hinzufügen</string>
+    <string name="groups_add_new">Neue Gruppe hinzufügen</string>
     <string name="groups_save">Gruppe speichern</string>
     <string name="groups_name_label">Gruppenname</string>
     <string name="groups_name_empty_error">Der Gruppenname darf nicht leer sein.</string>
     <string name="groups_assign_ringtone">Klingelton zuweisen</string>
-    <string name="groups_change_ringtone">Klingelton aendern</string>
-    <string name="groups_ringtone_selected">Klingelton ausgewaehlt: %1$s</string>
+    <string name="groups_change_ringtone">Klingelton ändern</string>
+    <string name="groups_ringtone_selected">Klingelton ausgewählt: %1$s</string>
     <string name="group_not_found">Gruppe nicht gefunden.</string>
-    <string name="groups_delete_from_device">Gruppe vom Geraet loeschen</string>
-    <string name="groups_delete">Gruppe loeschen</string>
-    <string name="group_imported_from_device">Aus Geraetekontakten importiert</string>
-    <string name="group_syncs_to_device">Synchronisiert mit Geraetekontakten</string>
+    <string name="groups_delete_from_device">Gruppe vom Gerät löschen</string>
+    <string name="groups_delete">Gruppe löschen</string>
+    <string name="group_imported_from_device">Aus Gerätekontakten importiert</string>
+    <string name="group_syncs_to_device">Synchronisiert mit Gerätekontakten</string>
     <string name="group_ringtone">Klingelton</string>
     <string name="group_members">Mitglieder</string>
-    <string name="group_no_contacts">Dieser Gruppe wurden noch keine Kontakte hinzugefuegt.</string>
+    <string name="group_no_contacts">Dieser Gruppe wurden noch keine Kontakte hinzugefügt.</string>
     <plurals name="group_member_count">
         <item quantity="one">%1$d Mitglied</item>
         <item quantity="other">%1$d Mitglieder</item>
     </plurals>
 
-    <string name="delete_group_from_device_title">Gruppe vom Geraet loeschen?</string>
-    <string name="delete_group_from_device_message">Wenn du diese Gruppe loeschst, wird sie aus dieser App und aus den Kontaktgruppen des Geraets entfernt.</string>
-    <string name="delete_group_everywhere">Ueberall loeschen</string>
-    <string name="delete_group_title">Gruppe loeschen?</string>
-    <string name="delete_group_message">Wenn du diese Gruppe loeschst, wird sie aus dieser App entfernt. Kontakte bleiben auf deinem Geraet.</string>
-    <string name="delete_selected_groups_from_device_title">Ausgewaehlte Gruppen vom Geraet loeschen?</string>
-    <string name="delete_selected_groups_title">Ausgewaehlte Gruppen loeschen?</string>
-    <string name="delete_eligible">Loeschbare loeschen</string>
+    <string name="delete_group_from_device_title">Gruppe vom Gerät löschen?</string>
+    <string name="delete_group_from_device_message">Wenn du diese Gruppe löschst, wird sie aus dieser App und aus den Kontaktgruppen des Geräts entfernt.</string>
+    <string name="delete_group_everywhere">Überall löschen</string>
+    <string name="delete_group_title">Gruppe löschen?</string>
+    <string name="delete_group_message">Wenn du diese Gruppe löschst, wird sie aus dieser App entfernt. Kontakte bleiben auf deinem Gerät.</string>
+    <string name="delete_selected_groups_from_device_title">Ausgewählte Gruppen vom Gerät löschen?</string>
+    <string name="delete_selected_groups_title">Ausgewählte Gruppen löschen?</string>
+    <string name="delete_eligible">Löschbare löschen</string>
     <plurals name="delete_selected_groups_from_device_message">
-        <item quantity="one">Wenn du %1$d Gruppe loeschst, wird sie aus dieser App und aus den Kontaktgruppen des Geraets entfernt.%2$s</item>
-        <item quantity="other">Wenn du %1$d Gruppen loeschst, werden sie aus dieser App und aus den Kontaktgruppen des Geraets entfernt.%2$s</item>
+        <item quantity="one">Wenn du %1$d Gruppe löschst, wird sie aus dieser App und aus den Kontaktgruppen des Geräts entfernt.%2$s</item>
+        <item quantity="other">Wenn du %1$d Gruppen löschst, werden sie aus dieser App und aus den Kontaktgruppen des Geräts entfernt.%2$s</item>
     </plurals>
     <plurals name="delete_selected_groups_message">
-        <item quantity="one">Wenn du %1$d Gruppe loeschst, wird sie aus dieser App entfernt. Kontakte bleiben auf deinem Geraet.%2$s</item>
-        <item quantity="other">Wenn du %1$d Gruppen loeschst, werden sie aus dieser App entfernt. Kontakte bleiben auf deinem Geraet.%2$s</item>
+        <item quantity="one">Wenn du %1$d Gruppe löschst, wird sie aus dieser App entfernt. Kontakte bleiben auf deinem Gerät.%2$s</item>
+        <item quantity="other">Wenn du %1$d Gruppen löschst, werden sie aus dieser App entfernt. Kontakte bleiben auf deinem Gerät.%2$s</item>
     </plurals>
     <plurals name="delete_selected_read_only_blocked_message">
-        <item quantity="one">\n\n%1$d ausgewaehlte Gruppe ist schreibgeschuetzt und wird nicht geloescht.</item>
-        <item quantity="other">\n\n%1$d ausgewaehlte Gruppen sind schreibgeschuetzt und werden nicht geloescht.</item>
+        <item quantity="one">\n\n%1$d ausgewählte Gruppe ist schreibgeschützt und wird nicht gelöscht.</item>
+        <item quantity="other">\n\n%1$d ausgewählte Gruppen sind schreibgeschützt und werden nicht gelöscht.</item>
     </plurals>
 
-    <string name="device_sync_ringtone_confirmation_title">Synchronisierte Klingelton-Aenderungen anwenden?</string>
-    <string name="device_sync_ringtone_confirmation_message">Diese Geraetesynchronisierung aktualisiert %1$s fuer %2$s in %3$s.</string>
-    <string name="device_sync_ringtone_confirmation_settings_hint">Aktiviere in den Einstellungen Geraetegruppen automatisch synchronisieren, um diese Nachfrage kuenftig zu ueberspringen und synchronisierte Klingelton-Aenderungen immer zu akzeptieren.</string>
+    <string name="device_sync_ringtone_confirmation_title">Synchronisierte Klingelton-Änderungen anwenden?</string>
+    <string name="device_sync_ringtone_confirmation_message">Diese Gerätesynchronisierung aktualisiert %1$s für %2$s in %3$s.</string>
+    <string name="device_sync_ringtone_confirmation_settings_hint">Aktiviere in den Einstellungen Gerätegruppen automatisch synchronisieren, um diese Nachfrage künftig zu überspringen und synchronisierte Klingelton-Änderungen immer zu akzeptieren.</string>
     <plurals name="device_sync_ringtone_confirmation_ringtone_count">
         <item quantity="one">%1$d Kontaktklingelton</item>
-        <item quantity="other">%1$d Kontaktklingeltoene</item>
+        <item quantity="other">%1$d Kontaktklingeltöne</item>
     </plurals>
     <plurals name="device_sync_ringtone_confirmation_contact_count">
         <item quantity="one">%1$d Kontakt</item>
@@ -131,15 +131,15 @@
         <item quantity="other">%1$d Gruppen</item>
     </plurals>
 
-    <string name="mutation_permission_denied">Kontaktberechtigung ist erforderlich, um diese Aktion abzuschliessen.</string>
-    <string name="mutation_conflict">Die Kontaktdatenbank wurde waehrend dieser Aktion geaendert. Bitte versuche es erneut.</string>
+    <string name="mutation_permission_denied">Kontaktberechtigung ist erforderlich, um diese Aktion abzuschließen.</string>
+    <string name="mutation_conflict">Die Kontaktdatenbank wurde während dieser Aktion geändert. Bitte versuche es erneut.</string>
     <string name="mutation_invalid_request">Diese Aktion konnte nicht abgeschlossen werden.</string>
-    <string name="mutation_reserved_system_group_name">My Contacts ist eine Systemgruppe und kann nicht ueberschrieben werden.</string>
-    <string name="mutation_create_group_provider_failed">Die Gruppe wurde in der App erstellt, aber die Synchronisierung mit den Geraetekontakten ist fehlgeschlagen.</string>
-    <string name="mutation_assign_contacts_provider_failed">Die Kontakte wurden in der App aktualisiert, aber die Synchronisierung mit den Geraetekontakten ist fehlgeschlagen.</string>
-    <string name="mutation_set_contact_groups_provider_failed">Die Gruppen des Kontakts wurden in der App aktualisiert, aber die Synchronisierung mit den Geraetekontakten ist fehlgeschlagen.</string>
-    <string name="mutation_remove_membership_provider_failed">Der Kontakt wurde in der App aktualisiert, aber die Synchronisierung mit den Geraetekontakten ist fehlgeschlagen.</string>
+    <string name="mutation_reserved_system_group_name">My Contacts ist eine Systemgruppe und kann nicht überschrieben werden.</string>
+    <string name="mutation_create_group_provider_failed">Die Gruppe wurde in der App erstellt, aber die Synchronisierung mit den Gerätekontakten ist fehlgeschlagen.</string>
+    <string name="mutation_assign_contacts_provider_failed">Die Kontakte wurden in der App aktualisiert, aber die Synchronisierung mit den Gerätekontakten ist fehlgeschlagen.</string>
+    <string name="mutation_set_contact_groups_provider_failed">Die Gruppen des Kontakts wurden in der App aktualisiert, aber die Synchronisierung mit den Gerätekontakten ist fehlgeschlagen.</string>
+    <string name="mutation_remove_membership_provider_failed">Der Kontakt wurde in der App aktualisiert, aber die Synchronisierung mit den Gerätekontakten ist fehlgeschlagen.</string>
     <string name="mutation_change_ringtone_provider_failed">Der Gruppenklingelton wurde gespeichert, aber das Anwenden auf Kontakte ist fehlgeschlagen.</string>
-    <string name="mutation_delete_group_provider_failed">Das Loeschen der Gruppe aus den Geraetekontakten ist fehlgeschlagen.</string>
-    <string name="mutation_sync_device_groups_provider_failed">Die Synchronisierung der Geraetekontaktgruppen ist fehlgeschlagen.</string>
+    <string name="mutation_delete_group_provider_failed">Das Löschen der Gruppe aus den Gerätekontakten ist fehlgeschlagen.</string>
+    <string name="mutation_sync_device_groups_provider_failed">Die Synchronisierung der Gerätekontaktgruppen ist fehlgeschlagen.</string>
 </resources>
