@@ -16,6 +16,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  workflow-lint:
+    name: Validate workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:1.7.12
+
   build:
     name: Build and test
     runs-on: ubuntu-latest
@@ -31,10 +43,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK packages
-        run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -49,3 +61,41 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
+
+  instrumentation-tests:
+    name: Instrumentation tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumentation tests
+        uses: ReactiveCircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
