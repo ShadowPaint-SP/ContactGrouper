@@ -19,8 +19,6 @@
     <string name="permission_request_message">This app needs contact read and write access to organize groups and apply ringtones.</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_prefer_nickname_display_name">Use nickname as contact display name</string>
-    <string name="settings_prefer_nickname_display_name_summary">Show a contact\'s nickname before their full name when a nickname is available.</string>
     <string name="settings_auto_sync_device_group_changes">Auto sync device group changes</string>
     <string name="settings_auto_sync_device_group_changes_summary">Apply ringtone updates from device group changes without asking each time.</string>
 

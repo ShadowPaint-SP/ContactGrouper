@@ -19,8 +19,6 @@
     <string name="permission_request_message">Diese App benoetigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden.</string>
 
     <string name="settings_title">Einstellungen</string>
-    <string name="settings_prefer_nickname_display_name">Spitznamen als Kontaktnamen verwenden</string>
-    <string name="settings_prefer_nickname_display_name_summary">Zeigt den Spitznamen vor dem vollstaendigen Namen, wenn ein Spitzname vorhanden ist.</string>
     <string name="settings_auto_sync_device_group_changes">Geraetegruppen automatisch synchronisieren</string>
     <string name="settings_auto_sync_device_group_changes_summary">Wendet Klingelton-Aenderungen aus Geraetegruppen ohne Nachfrage an.</string>
 

@@ -233,10 +233,6 @@ class DeviceGroupSyncManagerTest {
         private val mutableSettings = MutableStateFlow(initialSettings)
         override val settings: StateFlow<AppSettings> = mutableSettings.asStateFlow()
 
-        override fun setPreferNicknameDisplayName(enabled: Boolean) {
-            mutableSettings.value = mutableSettings.value.copy(preferNicknameDisplayName = enabled)
-        }
-
         override fun setAutoSyncDeviceGroupChanges(enabled: Boolean) {
             mutableSettings.value = mutableSettings.value.copy(autoSyncDeviceGroupChanges = enabled)
         }
