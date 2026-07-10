@@ -111,6 +111,7 @@
 - **Built with**: Android Jetpack Compose, Room Database, Kotlin
 - **Requires**: Android 10 or higher
 - **Permissions**: Contacts (READ/WRITE), Phone (to set ringtones)
+- **Build automation**: GitHub Actions test the app and publish debug APK artifacts. See [docs/release.md](docs/release.md).
 
 ---
 
