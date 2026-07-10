@@ -2,7 +2,7 @@
 
 ContactGrouper has two GitHub Actions workflows:
 
-- `Android CI` runs on pull requests and pushes to `main`. It validates the workflow files, runs debug unit tests and lint, builds an unsigned release APK, and runs the Android instrumentation tests on an emulator. The generated release APK is uploaded as a short-lived workflow artifact.
+- `Android CI` runs on pull requests and pushes to `main`. It runs debug unit tests and lint, builds an unsigned release APK, and runs the Android instrumentation tests on an emulator. The generated release APK is uploaded as a short-lived workflow artifact.
 - `Release APK` runs on pushes to `main` that change `app/build.gradle.kts`, and can also be started manually from the Actions tab. It reads `releaseVersionName` from Gradle, creates or updates the `v<releaseVersionName>` GitHub prerelease, uploads the APK as both a workflow artifact and release asset, and can promote the previous prerelease to the latest stable release.
 
 ## Version and tags

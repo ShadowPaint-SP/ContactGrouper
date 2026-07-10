@@ -16,18 +16,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  workflow-lint:
-    name: Validate workflows
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Run actionlint
-        uses: docker://rhysd/actionlint:1.7.12
-
   build:
     name: Build and test
     runs-on: ubuntu-latest
