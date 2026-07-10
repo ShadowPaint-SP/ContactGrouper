@@ -3,6 +3,7 @@
 
     <string name="nav_contacts">Kontakte</string>
     <string name="nav_groups">Gruppen</string>
+    <string name="nav_settings">Einstellungen</string>
 
     <string name="action_ok">OK</string>
     <string name="action_cancel">Abbrechen</string>
@@ -15,6 +16,10 @@
     <string name="permission_required_title">Berechtigung erforderlich</string>
     <string name="permission_permanently_denied_message">Diese App benoetigt Zugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden. Bitte aktiviere die Berechtigungen in den App-Einstellungen.</string>
     <string name="permission_request_message">Diese App benoetigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden.</string>
+
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_auto_sync_device_group_changes">Geraetegruppen automatisch synchronisieren</string>
+    <string name="settings_auto_sync_device_group_changes_summary">Haelt lokale Gruppen aktuell, wenn Geraetekontaktgruppen ausserhalb dieser App geaendert werden.</string>
 
     <string name="app_error_start_failed_title">App konnte nicht gestartet werden</string>
     <string name="app_error_unexpected_title">Unerwarteter Fehler</string>
@@ -56,7 +61,6 @@
     <string name="contact_type_main">Hauptnummer</string>
     <string name="contact_type_other">Andere</string>
 
-    <string name="groups_empty">Noch keine Gruppen.\nZiehe nach unten, um Geraetegruppen zu synchronisieren, oder tippe auf \'+\', um eine Gruppe hinzuzufuegen.</string>
     <string name="groups_delete_selected">Ausgewaehlte Gruppen loeschen</string>
     <string name="groups_no_selected_deletable">Keine ausgewaehlten Gruppen koennen geloescht werden</string>
     <string name="groups_add">Gruppe hinzufuegen</string>

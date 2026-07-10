@@ -5,9 +5,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -44,6 +46,13 @@ sealed class Screen(val route: String, val selected: ImageVector, val unselected
             "groups_graph",
             R.string.nav_groups
         )
+        data object Settings : NavBarScreen(
+            "Settings",
+            Icons.Filled.Settings,
+            Icons.Outlined.Settings,
+            "settings_graph",
+            R.string.nav_settings
+        )
     }
 
     data object AddGroup : Screen("AddGroup", Icons.Filled.Group, Icons.Outlined.Group)
@@ -68,7 +77,11 @@ sealed class Screen(val route: String, val selected: ImageVector, val unselected
     }
 }
 
-val navbarItems = listOf(Screen.NavBarScreen.Contacts, Screen.NavBarScreen.Groups)
+val navbarItems = listOf(
+    Screen.NavBarScreen.Contacts,
+    Screen.NavBarScreen.Groups,
+    Screen.NavBarScreen.Settings
+)
 
 @Composable
 fun BottomNavigation(navController: NavHostController) {

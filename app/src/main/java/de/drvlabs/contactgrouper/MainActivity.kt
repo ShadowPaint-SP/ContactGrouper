@@ -62,6 +62,8 @@ import de.drvlabs.contactgrouper.groups.GroupViewModel.Companion.factory as grou
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
 import de.drvlabs.contactgrouper.groups.userMessageResId
 import de.drvlabs.contactgrouper.permission.ContactsPermissionEvaluator
+import de.drvlabs.contactgrouper.settings.SettingsRoute
+import de.drvlabs.contactgrouper.settings.SettingsViewModel
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -137,11 +139,16 @@ class MainActivity : ComponentActivity() {
             this,
             groupFactory(appContainer.groupsRepository)
         )[GroupViewModel::class.java]
+        val settingsViewModel = ViewModelProvider(
+            this,
+            SettingsViewModel.factory(appContainer.appSettingsRepository)
+        )[SettingsViewModel::class.java]
 
         return MainActivityBootstrap(
             appContainer = appContainer,
             contactsViewModel = contactsViewModel,
-            groupViewModel = groupViewModel
+            groupViewModel = groupViewModel,
+            settingsViewModel = settingsViewModel
         )
     }
 }
@@ -149,7 +156,8 @@ class MainActivity : ComponentActivity() {
 internal data class MainActivityBootstrap(
     val appContainer: AppContainer,
     val contactsViewModel: ContactsViewModel,
-    val groupViewModel: GroupViewModel
+    val groupViewModel: GroupViewModel,
+    val settingsViewModel: SettingsViewModel
 )
 
 @Composable
@@ -205,6 +213,7 @@ private fun MainActivityContent(
     if (permissionState.hasPermission) {
         val contactsViewModel = bootstrap.contactsViewModel
         val groupViewModel = bootstrap.groupViewModel
+        val settingsViewModel = bootstrap.settingsViewModel
         val appContainer = bootstrap.appContainer
         val contactState by contactsViewModel.state.collectAsState()
         val groupState by groupViewModel.state.collectAsState()
@@ -410,6 +419,15 @@ private fun MainActivityContent(
                                 groupViewModel.deleteGroup(groupId)
                             }
                         )
+                    }
+                }
+
+                navigation(
+                    startDestination = Screen.NavBarScreen.Settings.route,
+                    route = "settings_graph"
+                ) {
+                    composable(Screen.NavBarScreen.Settings.route) {
+                        SettingsRoute(viewModel = settingsViewModel)
                     }
                 }
             }

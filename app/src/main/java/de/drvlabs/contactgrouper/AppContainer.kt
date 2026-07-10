@@ -10,6 +10,9 @@ import de.drvlabs.contactgrouper.groups.ContactsContractDeviceGroupWriteGateway
 import de.drvlabs.contactgrouper.groups.DeviceGroupSyncManager
 import de.drvlabs.contactgrouper.groups.GroupDatabase
 import de.drvlabs.contactgrouper.groups.RoomGroupsRepository
+import de.drvlabs.contactgrouper.settings.AppSettingsRepository
+import de.drvlabs.contactgrouper.settings.PersistentAppSettingsRepository
+import de.drvlabs.contactgrouper.settings.SharedPreferencesAppSettingsStore
 
 class AppContainer(
     context: Context,
@@ -41,6 +44,12 @@ class AppContainer(
             contentResolver = contentResolver,
             appErrorReporter = appErrorReporter,
             getString = appContext::getString
+        )
+    }
+
+    val appSettingsRepository: AppSettingsRepository by lazy {
+        PersistentAppSettingsRepository(
+            SharedPreferencesAppSettingsStore.create(appContext)
         )
     }
 
