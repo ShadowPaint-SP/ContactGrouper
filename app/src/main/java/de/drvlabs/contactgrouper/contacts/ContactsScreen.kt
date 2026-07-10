@@ -1,6 +1,7 @@
 package de.drvlabs.contactgrouper.contacts
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -38,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,10 +52,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -62,6 +65,8 @@ import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.groups.Group
 import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.isSuccess
+import de.drvlabs.contactgrouper.search.SearchTextField
+import de.drvlabs.contactgrouper.search.filterContactsBySearchQuery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -77,35 +82,78 @@ fun ContactsMainScreen(
     onMultipleGroupsRingtoneInfoAcknowledged: () -> Unit = {}
 ) {
     var selectedContacts by rememberSaveable { mutableStateOf(emptySet<Long>()) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val isInSelectionMode = selectedContacts.isNotEmpty()
     var showAssignGroupDialog by remember { mutableStateOf(false) }
     var multipleGroupsRingtoneInfo by remember { mutableStateOf<MultipleGroupsRingtoneInfo?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val filteredContacts = remember(state.contacts, groups, searchQuery) {
+        filterContactsBySearchQuery(
+            contacts = state.contacts,
+            groups = groups,
+            query = searchQuery
+        )
+    }
 
     BackHandler(enabled = isInSelectionMode) {
         selectedContacts = emptySet()
     }
 
-    Box {
-        ContactList(
-            contacts = state.contacts,
-            groups = groups,
-            selectedContacts = selectedContacts,
-            onContactClick = { contact ->
-                if (isInSelectionMode) {
-                    selectedContacts = if (contact.id in selectedContacts) {
-                        selectedContacts - contact.id
-                    } else {
-                        selectedContacts + contact.id
-                    }
-                } else {
-                    navController.navigate(Screen.ContactDetails.createRoute(contact.id))
+    LaunchedEffect(state.contacts) {
+        val contactIds = state.contacts.map(Contact::id).toSet()
+        selectedContacts = selectedContacts intersect contactIds
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SearchTextField(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                label = stringResource(R.string.contacts_search_label),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+
+            when {
+                state.contacts.isEmpty() -> {
+                    ContactsEmptyMessage(
+                        messageResId = R.string.contacts_empty,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-            },
-            onContactLongClick = { contact ->
-                selectedContacts = selectedContacts + contact.id
+                filteredContacts.isEmpty() -> {
+                    ContactsEmptyMessage(
+                        messageResId = R.string.contacts_search_empty,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                else -> {
+                    ContactList(
+                        modifier = Modifier.weight(1f),
+                        contacts = filteredContacts,
+                        groups = groups,
+                        selectedContacts = selectedContacts,
+                        onContactClick = { contact ->
+                            if (isInSelectionMode) {
+                                selectedContacts = if (contact.id in selectedContacts) {
+                                    selectedContacts - contact.id
+                                } else {
+                                    selectedContacts + contact.id
+                                }
+                            } else {
+                                navController.navigate(Screen.ContactDetails.createRoute(contact.id))
+                            }
+                        },
+                        onContactLongClick = { contact ->
+                            selectedContacts = selectedContacts + contact.id
+                        }
+                    )
+                }
             }
-        )
+        }
 
         FloatingActionButton(
             modifier = Modifier
@@ -168,6 +216,26 @@ fun ContactsMainScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun ContactsEmptyMessage(
+    @StringRes messageResId: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(messageResId),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
