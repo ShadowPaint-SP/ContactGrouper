@@ -18,6 +18,8 @@
     <string name="permission_request_message">Diese App benoetigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden.</string>
 
     <string name="settings_title">Einstellungen</string>
+    <string name="settings_prefer_nickname_display_name">Spitznamen als Kontaktnamen verwenden</string>
+    <string name="settings_prefer_nickname_display_name_summary">Zeigt den Spitznamen vor dem vollstaendigen Namen, wenn ein Spitzname vorhanden ist.</string>
     <string name="settings_auto_sync_device_group_changes">Geraetegruppen automatisch synchronisieren</string>
     <string name="settings_auto_sync_device_group_changes_summary">Haelt lokale Gruppen aktuell, wenn Geraetekontaktgruppen ausserhalb dieser App geaendert werden.</string>
 
@@ -45,6 +47,8 @@
     <string name="contacts_no_editable_groups">Erstelle zuerst eine lokale Gruppe. Importierte schreibgeschuetzte Gruppen koennen hier nicht geaendert werden.</string>
     <string name="contacts_selected">Ausgewaehlt</string>
     <string name="contacts_controls_ringtone">Steuert den Klingelton</string>
+    <string name="multiple_groups_ringtone_info_title">Klingeltoene bei mehreren Gruppen</string>
+    <string name="multiple_groups_ringtone_info_message">Bei %1$s steuert &quot;%2$s&quot; den Klingelton, weil diese Gruppe die zuletzt zugewiesene Gruppe mit Klingelton ist.</string>
     <string name="contact_not_found">Kontakt nicht gefunden.</string>
     <string name="contact_unknown_name">Unbenannter Kontakt</string>
     <string name="contact_section_phone">Telefon</string>
@@ -61,6 +65,7 @@
     <string name="contact_type_main">Hauptnummer</string>
     <string name="contact_type_other">Andere</string>
 
+    <string name="groups_empty">Noch keine Gruppen.\nZiehe nach unten, um Geraetegruppen zu synchronisieren, oder tippe auf \'+\', um eine Gruppe hinzuzufuegen.</string>
     <string name="groups_delete_selected">Ausgewaehlte Gruppen loeschen</string>
     <string name="groups_no_selected_deletable">Keine ausgewaehlten Gruppen koennen geloescht werden</string>
     <string name="groups_add">Gruppe hinzufuegen</string>

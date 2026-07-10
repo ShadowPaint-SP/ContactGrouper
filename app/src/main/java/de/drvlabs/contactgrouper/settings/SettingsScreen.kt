@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +23,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import de.drvlabs.contactgrouper.R
 
+internal const val PREFER_NICKNAME_SETTING_TAG = "settings-prefer-nickname-display-name"
 internal const val AUTO_SYNC_DEVICE_GROUPS_SETTING_TAG = "settings-auto-sync-device-group-changes"
 
 @Composable
@@ -33,6 +35,7 @@ fun SettingsRoute(
 
     SettingsScreen(
         settings = settings,
+        onPreferNicknameDisplayNameChange = viewModel::setPreferNicknameDisplayName,
         onAutoSyncDeviceGroupChangesChange = viewModel::setAutoSyncDeviceGroupChanges,
         modifier = modifier
     )
@@ -41,6 +44,7 @@ fun SettingsRoute(
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
+    onPreferNicknameDisplayNameChange: (Boolean) -> Unit,
     onAutoSyncDeviceGroupChangesChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -61,6 +65,18 @@ fun SettingsScreen(
                     bottom = 16.dp
                 )
             )
+        }
+        item {
+            SettingsSwitchRow(
+                title = stringResource(R.string.settings_prefer_nickname_display_name),
+                summary = stringResource(R.string.settings_prefer_nickname_display_name_summary),
+                checked = settings.preferNicknameDisplayName,
+                onCheckedChange = onPreferNicknameDisplayNameChange,
+                testTag = PREFER_NICKNAME_SETTING_TAG
+            )
+        }
+        item {
+            HorizontalDivider(modifier = Modifier.padding(start = 24.dp))
         }
         item {
             SettingsSwitchRow(

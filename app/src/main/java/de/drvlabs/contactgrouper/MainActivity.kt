@@ -217,6 +217,7 @@ private fun MainActivityContent(
         val appContainer = bootstrap.appContainer
         val contactState by contactsViewModel.state.collectAsState()
         val groupState by groupViewModel.state.collectAsState()
+        val appSettings by settingsViewModel.settings.collectAsState()
 
         LaunchedEffect(groupViewModel) {
             groupViewModel.messages.collect { messageResId ->
@@ -271,7 +272,11 @@ private fun MainActivityContent(
                                     }
                                 }
                                 finalResult
-                            }
+                            },
+                            hasSeenMultipleGroupsRingtoneInfo =
+                            appSettings.hasSeenMultipleGroupsRingtoneInfo,
+                            onMultipleGroupsRingtoneInfoAcknowledged =
+                            settingsViewModel::acknowledgeMultipleGroupsRingtoneInfo
                         )
                     }
                     composable(
@@ -321,7 +326,11 @@ private fun MainActivityContent(
                                         snackbarHostState.showSnackbar("Contact was not deleted.")
                                     }
                                 }
-                            }
+                            },
+                            hasSeenMultipleGroupsRingtoneInfo =
+                            appSettings.hasSeenMultipleGroupsRingtoneInfo,
+                            onMultipleGroupsRingtoneInfoAcknowledged =
+                            settingsViewModel::acknowledgeMultipleGroupsRingtoneInfo
                         )
                     }
                 }
