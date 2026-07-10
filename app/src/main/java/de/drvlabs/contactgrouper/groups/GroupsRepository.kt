@@ -2,8 +2,11 @@ package de.drvlabs.contactgrouper.groups
 
 import android.net.Uri
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 interface GroupsRepository {
+    val pendingDeviceSyncRingtoneConfirmation: StateFlow<DeviceSyncRingtoneConfirmation?>
+
     fun observeGroups(): Flow<List<Group>>
     fun observeMemberships(): Flow<List<GroupMembership>>
     suspend fun getGroup(groupId: Int): Group?
@@ -13,5 +16,10 @@ interface GroupsRepository {
     suspend fun removeContactFromGroup(groupId: Int, contactId: Long): GroupMutationResult
     suspend fun changeGroupRingtone(groupId: Int, ringtoneUri: Uri?): GroupMutationResult
     suspend fun deleteGroup(groupId: Int): GroupMutationResult
-    suspend fun syncDeviceGroups(snapshot: DeviceGroupSnapshot): GroupMutationResult
+    suspend fun syncDeviceGroups(
+        snapshot: DeviceGroupSnapshot,
+        ringtoneMode: DeviceSyncRingtoneMode
+    ): GroupMutationResult
+    suspend fun acceptPendingDeviceSyncRingtoneChanges(): GroupMutationResult
+    fun cancelPendingDeviceSyncRingtoneChanges()
 }
