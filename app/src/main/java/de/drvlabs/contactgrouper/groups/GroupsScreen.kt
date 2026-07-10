@@ -84,6 +84,8 @@ import de.drvlabs.contactgrouper.contacts.ContactList
 import de.drvlabs.contactgrouper.contacts.ContactsListState
 import de.drvlabs.contactgrouper.search.SearchTextField
 import de.drvlabs.contactgrouper.search.filterGroupsBySearchQuery
+import de.drvlabs.contactgrouper.ui.theme.readableContentColorFor
+import de.drvlabs.contactgrouper.ui.theme.visibleGroupColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -380,6 +382,17 @@ fun GroupCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {}
 ) {
+    val containerColor = if (isSelected) {
+        MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        visibleGroupColor(group.color, MaterialTheme.colorScheme.surfaceContainer)
+    }
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        readableContentColorFor(containerColor)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -388,11 +401,8 @@ fun GroupCard(
                 onLongClick = onLongClick
             ),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.tertiaryContainer
-            } else {
-                group.color
-            }
+            containerColor = containerColor,
+            contentColor = contentColor
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -400,20 +410,22 @@ fun GroupCard(
                 Text(
                     text = group.name,
                     modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    color = contentColor
                 )
                 if (isSelected) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = stringResource(R.string.contacts_selected),
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                        tint = contentColor
                     )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = pluralStringResource(R.plurals.group_member_count, memberCount, memberCount),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor
             )
         }
     }
@@ -659,6 +671,8 @@ fun GroupDetailScreen(
         }
 
         val groupContacts = allContacts.filter { group.id in it.groupIds }
+        val headerContainerColor = visibleGroupColor(group.color, MaterialTheme.colorScheme.surface)
+        val headerContentColor = readableContentColorFor(headerContainerColor)
 
         Column(
             modifier = Modifier
@@ -670,7 +684,10 @@ fun GroupDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = group.color)
+                colors = CardDefaults.cardColors(
+                    containerColor = headerContainerColor,
+                    contentColor = headerContentColor
+                )
             ) {
                 Row(
                     modifier = Modifier
@@ -683,7 +700,7 @@ fun GroupDetailScreen(
                         Text(
                             text = group.name,
                             style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = headerContentColor
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -693,21 +710,21 @@ fun GroupDetailScreen(
                                 groupContacts.size
                             ),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = headerContentColor
                         )
                         if (group.isDeviceBacked) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = stringResource(R.string.group_imported_from_device),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = headerContentColor
                             )
                         } else if (group.deletesFromDevice) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = stringResource(R.string.group_syncs_to_device),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = headerContentColor
                             )
                         }
                     }
@@ -727,13 +744,13 @@ fun GroupDetailScreen(
                                 imageVector = Icons.Default.LibraryMusic,
                                 contentDescription = stringResource(R.string.group_ringtone),
                                 modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = headerContentColor
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = title,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = headerContentColor
                             )
                         }
                     }

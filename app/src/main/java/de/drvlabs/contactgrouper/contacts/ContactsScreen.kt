@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -67,6 +68,8 @@ import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.isSuccess
 import de.drvlabs.contactgrouper.search.SearchTextField
 import de.drvlabs.contactgrouper.search.filterContactsBySearchQuery
+import de.drvlabs.contactgrouper.ui.theme.readableContentColorFor
+import de.drvlabs.contactgrouper.ui.theme.visibleGroupColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -387,6 +390,11 @@ fun ContactList(
 
             itemsIndexed(contactsInGroup) { index, contact ->
                 val isSelected = selectedContacts.contains(contact.id)
+                val cardContainerColor = if (isSelected) {
+                    MaterialTheme.colorScheme.tertiaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surface
+                }
                 val largeRadius = 24.dp
                 val smallRadius = 8.dp
                 val cardShape = when {
@@ -418,11 +426,7 @@ fun ContactList(
                         modifier = Modifier.fillMaxWidth(),
                         shape = cardShape,
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) {
-                                MaterialTheme.colorScheme.tertiaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            }
+                            containerColor = cardContainerColor
                         )
                     ) {
                         Row(
@@ -491,7 +495,8 @@ fun ContactList(
                                         contactGroups.take(3).forEach { group ->
                                             GroupBadge(
                                                 group = group,
-                                                isEffective = contact.effectiveRingtoneGroupId == group.id
+                                                isEffective = contact.effectiveRingtoneGroupId == group.id,
+                                                backdropColor = cardContainerColor
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                         }
@@ -519,13 +524,18 @@ fun ContactList(
 fun GroupBadge(
     group: Group,
     isEffective: Boolean,
+    backdropColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val badgeColor = visibleGroupColor(group.color, backdropColor)
+    val badgeContentColor = readableContentColorFor(badgeColor)
+
     Surface(
         modifier = modifier
             .padding(top = 4.dp)
             .clip(RoundedCornerShape(8.dp)),
-        color = group.color,
+        color = badgeColor,
+        contentColor = badgeContentColor,
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
@@ -535,7 +545,7 @@ fun GroupBadge(
             Text(
                 text = group.name,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = badgeContentColor
             )
             if (isEffective) {
                 Spacer(modifier = Modifier.width(4.dp))
@@ -543,7 +553,7 @@ fun GroupBadge(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = stringResource(R.string.contacts_controls_ringtone),
                     modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = badgeContentColor
                 )
             }
         }
