@@ -20,11 +20,20 @@ class RoomGroupsRepository(
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) : GroupsRepository {
 
+    private val deviceSyncRingtoneConfirmationController =
+        DeviceSyncRingtoneConfirmationController(
+            loadPendingPreview = ::loadPendingDeviceSyncRingtoneConfirmation,
+            applyRingtoneChanges = ::refreshRingtones
+        )
+
     private data class MirrorOutcome(
         val group: Group,
         val mirroredToDevice: Boolean,
         val additionalAffectedContactIds: Set<Long> = emptySet()
     )
+
+    override val pendingDeviceSyncRingtoneConfirmation =
+        deviceSyncRingtoneConfirmationController.pendingConfirmation
 
     override fun observeGroups(): Flow<List<Group>> = database.groupDao.getAllGroups()
 
@@ -295,10 +304,12 @@ class RoomGroupsRepository(
         }
     }
 
-    override suspend fun syncDeviceGroups(snapshot: DeviceGroupSnapshot): GroupMutationResult {
+    override suspend fun syncDeviceGroups(
+        snapshot: DeviceGroupSnapshot,
+        ringtoneMode: DeviceSyncRingtoneMode
+    ): GroupMutationResult {
         return runMutation(GroupMutationAction.SYNC_DEVICE_GROUPS) {
             val importableSnapshot = snapshot.withoutReservedSystemGroups()
-            val affectedContacts = mutableSetOf<Long>()
 
             database.withTransaction {
                 val groupDao = database.groupDao
@@ -360,9 +371,6 @@ class RoomGroupsRepository(
                 existingDeviceGroups
                     .filter { it.deviceGroupId !in snapshotDeviceIds }
                     .forEach { staleGroup ->
-                        affectedContacts += membershipDao
-                            .getMembershipsForGroup(staleGroup.id)
-                            .map { it.contactId }
                         groupDao.deleteGroup(staleGroup)
                     }
 
@@ -415,7 +423,6 @@ class RoomGroupsRepository(
                                 source = GroupSyncSource.DEVICE
                             )
                         )
-                        affectedContacts += contactId
                     }
                 }
 
@@ -423,16 +430,57 @@ class RoomGroupsRepository(
                     .filter { (it.groupId to it.contactId) !in incomingMemberships }
                     .forEach { membership ->
                         membershipDao.deleteMembership(membership.groupId, membership.contactId)
-                        affectedContacts += membership.contactId
                     }
             }
 
-            if (refreshRingtones(affectedContacts)) {
-                GroupMutationResult.Success
-            } else {
-                GroupMutationResult.ProviderWriteFailed(GroupMutationAction.SYNC_DEVICE_GROUPS)
-            }
+            deviceSyncRingtoneConfirmationController.handleDeviceSync(ringtoneMode)
         }
+    }
+
+    override suspend fun acceptPendingDeviceSyncRingtoneChanges(): GroupMutationResult {
+        return runMutation(GroupMutationAction.SYNC_DEVICE_GROUPS) {
+            deviceSyncRingtoneConfirmationController.acceptPending()
+        }
+    }
+
+    override fun cancelPendingDeviceSyncRingtoneChanges() {
+        deviceSyncRingtoneConfirmationController.cancelPending()
+    }
+
+    private suspend fun loadPendingDeviceSyncRingtoneConfirmation(): DeviceSyncRingtoneConfirmation? {
+        val deviceMemberships = database.membershipDao.getMembershipsBySource(GroupSyncSource.DEVICE)
+        val appliedStates = database.contactRingtoneStateDao.getAppliedStates()
+        val contactIds = (deviceMemberships.map { it.contactId } + appliedStates.map { it.contactId })
+            .toSet()
+        if (contactIds.isEmpty()) {
+            return null
+        }
+
+        val distinctContactIds = contactIds.toList()
+        val membershipsByContact = database.membershipDao
+            .getMembershipsForContacts(distinctContactIds)
+            .groupBy { it.contactId }
+        val groupIds = membershipsByContact.values
+            .flatten()
+            .map(GroupMembership::groupId)
+            .distinct()
+        val groupsById = if (groupIds.isEmpty()) {
+            emptyMap()
+        } else {
+            database.groupDao
+                .getGroupsByIds(groupIds)
+                .associateBy { it.id }
+        }
+        val existingStatesByContact = database.contactRingtoneStateDao
+            .getByContactIds(distinctContactIds)
+            .associateBy { it.contactId }
+
+        return DeviceSyncRingtonePreview.calculate(
+            contactIds = contactIds,
+            membershipsByContact = membershipsByContact,
+            groupsById = groupsById,
+            existingStatesByContact = existingStatesByContact
+        )
     }
 
     private suspend fun refreshRingtones(contactIds: Set<Long>): Boolean {

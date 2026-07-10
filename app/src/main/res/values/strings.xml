@@ -3,11 +3,13 @@
 
     <string name="nav_contacts">Contacts</string>
     <string name="nav_groups">Groups</string>
+    <string name="nav_settings">Settings</string>
 
     <string name="action_ok">OK</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
     <string name="action_back">Back</string>
+    <string name="action_accept">Accept</string>
     <string name="action_settings">Settings</string>
     <string name="action_open_settings">Open Settings</string>
     <string name="action_grant_permissions">Grant Permissions</string>
@@ -16,6 +18,10 @@
     <string name="permission_required_title">Permission Required</string>
     <string name="permission_permanently_denied_message">This app needs contact access to organize groups and apply ringtones. Please enable the permissions in app settings.</string>
     <string name="permission_request_message">This app needs contact read and write access to organize groups and apply ringtones.</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_auto_sync_device_group_changes">Auto sync device group changes</string>
+    <string name="settings_auto_sync_device_group_changes_summary">Apply ringtone updates from device group changes without asking each time.</string>
 
     <string name="app_error_start_failed_title">App Failed to Start</string>
     <string name="app_error_unexpected_title">Unexpected Error</string>
@@ -44,6 +50,8 @@
     <string name="contacts_no_editable_groups">Create a local group first. Imported read-only groups cannot be changed here.</string>
     <string name="contacts_selected">Selected</string>
     <string name="contacts_controls_ringtone">Controls ringtone</string>
+    <string name="multiple_groups_ringtone_info_title">Multiple Group Ringtones</string>
+    <string name="multiple_groups_ringtone_info_message">For %1$s, &quot;%2$s&quot; controls the ringtone because it is the newest assigned group with a ringtone.</string>
     <string name="contact_not_found">Contact not found.</string>
     <string name="contact_unknown_name">Unnamed contact</string>
     <string name="contact_section_phone">Phone</string>
@@ -105,6 +113,22 @@
     <plurals name="delete_selected_read_only_blocked_message">
         <item quantity="one">\n\n%1$d selected group is read-only and will not be deleted.</item>
         <item quantity="other">\n\n%1$d selected groups are read-only and will not be deleted.</item>
+    </plurals>
+
+    <string name="device_sync_ringtone_confirmation_title">Apply synced ringtone changes?</string>
+    <string name="device_sync_ringtone_confirmation_message">This device sync will update %1$s for %2$s across %3$s.</string>
+    <string name="device_sync_ringtone_confirmation_settings_hint">To skip this prompt in future, turn on Auto sync device group changes in Settings so synced ringtone changes are always accepted.</string>
+    <plurals name="device_sync_ringtone_confirmation_ringtone_count">
+        <item quantity="one">%1$d contact ringtone</item>
+        <item quantity="other">%1$d contact ringtones</item>
+    </plurals>
+    <plurals name="device_sync_ringtone_confirmation_contact_count">
+        <item quantity="one">%1$d contact</item>
+        <item quantity="other">%1$d contacts</item>
+    </plurals>
+    <plurals name="device_sync_ringtone_confirmation_group_count">
+        <item quantity="one">%1$d group</item>
+        <item quantity="other">%1$d groups</item>
     </plurals>
 
     <string name="mutation_permission_denied">Contacts permission is required to complete this action.</string>

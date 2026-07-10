@@ -77,12 +77,15 @@ fun ContactsMainScreen(
     state: ContactsListState,
     groups: List<Group>,
     onCreateContact: () -> Unit,
-    onSetContactsGroups: suspend (Map<Long, List<Int>>) -> GroupMutationResult
+    onSetContactsGroups: suspend (Map<Long, List<Int>>) -> GroupMutationResult,
+    hasSeenMultipleGroupsRingtoneInfo: Boolean = true,
+    onMultipleGroupsRingtoneInfoAcknowledged: () -> Unit = {}
 ) {
     var selectedContacts by rememberSaveable { mutableStateOf(emptySet<Long>()) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val isInSelectionMode = selectedContacts.isNotEmpty()
     var showAssignGroupDialog by remember { mutableStateOf(false) }
+    var multipleGroupsRingtoneInfo by remember { mutableStateOf<MultipleGroupsRingtoneInfo?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val filteredContacts = remember(state.contacts, groups, searchQuery) {
         filterContactsBySearchQuery(
@@ -189,10 +192,27 @@ fun ContactsMainScreen(
                         contactGroupIds = contactGroupIds,
                         onSetContactsGroups = onSetContactsGroups,
                         onSuccess = {
+                            multipleGroupsRingtoneInfo =
+                                findMultipleGroupsRingtoneInfoAfterAssignments(
+                                    contacts = state.contacts,
+                                    groups = groups,
+                                    assignedEditableGroupIdsByContact = contactGroupIds,
+                                    hasSeenMultipleGroupsRingtoneInfo = hasSeenMultipleGroupsRingtoneInfo
+                                )
                             selectedContacts = emptySet()
                             showAssignGroupDialog = false
                         }
                     )
+                }
+            )
+        }
+
+        multipleGroupsRingtoneInfo?.let { info ->
+            MultipleGroupsRingtoneInfoDialog(
+                info = info,
+                onAcknowledge = {
+                    multipleGroupsRingtoneInfo = null
+                    onMultipleGroupsRingtoneInfoAcknowledged()
                 }
             )
         }

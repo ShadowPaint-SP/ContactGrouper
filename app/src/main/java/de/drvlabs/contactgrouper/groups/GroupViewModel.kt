@@ -24,6 +24,9 @@ class GroupViewModel(
             GroupsListState()
         )
 
+    val pendingDeviceSyncRingtoneConfirmation =
+        repository.pendingDeviceSyncRingtoneConfirmation
+
     private val mutableMessages = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     val messages = mutableMessages.asSharedFlow()
 
@@ -65,6 +68,14 @@ class GroupViewModel(
                 repository.deleteGroup(groupId)
             }
         )
+    }
+
+    suspend fun acceptPendingDeviceSyncRingtoneChanges(): GroupMutationResult {
+        return handleResult(repository.acceptPendingDeviceSyncRingtoneChanges())
+    }
+
+    fun cancelPendingDeviceSyncRingtoneChanges() {
+        repository.cancelPendingDeviceSyncRingtoneChanges()
     }
 
     companion object {
