@@ -1,6 +1,9 @@
 package de.drvlabs.contactgrouper.search
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -12,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.unit.dp
 import de.drvlabs.contactgrouper.R
 
 @Composable
@@ -25,7 +28,10 @@ fun SearchTextField(
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(62.dp),
+        shape = RoundedCornerShape(20.dp),
         label = { Text(label) },
         leadingIcon = {
             Icon(
