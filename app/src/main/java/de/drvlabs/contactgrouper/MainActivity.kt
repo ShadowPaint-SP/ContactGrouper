@@ -34,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -55,6 +56,7 @@ import de.drvlabs.contactgrouper.contacts.ContactsMainScreen
 import de.drvlabs.contactgrouper.contacts.ContactsViewModel
 import de.drvlabs.contactgrouper.groups.AddGroupScreen
 import de.drvlabs.contactgrouper.groups.AddGroupViewModel
+import de.drvlabs.contactgrouper.groups.DeviceSyncRingtoneConfirmationDialog
 import de.drvlabs.contactgrouper.groups.GroupDetailScreen
 import de.drvlabs.contactgrouper.groups.GroupMutationResult
 import de.drvlabs.contactgrouper.groups.GroupViewModel
@@ -62,7 +64,10 @@ import de.drvlabs.contactgrouper.groups.GroupViewModel.Companion.factory as grou
 import de.drvlabs.contactgrouper.groups.GroupsMainScreen
 import de.drvlabs.contactgrouper.groups.userMessageResId
 import de.drvlabs.contactgrouper.permission.ContactsPermissionEvaluator
+import de.drvlabs.contactgrouper.settings.SettingsRoute
+import de.drvlabs.contactgrouper.settings.SettingsViewModel
 import de.drvlabs.contactgrouper.ui.theme.AppTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -137,11 +142,16 @@ class MainActivity : ComponentActivity() {
             this,
             groupFactory(appContainer.groupsRepository)
         )[GroupViewModel::class.java]
+        val settingsViewModel = ViewModelProvider(
+            this,
+            SettingsViewModel.factory(appContainer.appSettingsRepository)
+        )[SettingsViewModel::class.java]
 
         return MainActivityBootstrap(
             appContainer = appContainer,
             contactsViewModel = contactsViewModel,
-            groupViewModel = groupViewModel
+            groupViewModel = groupViewModel,
+            settingsViewModel = settingsViewModel
         )
     }
 }
@@ -149,7 +159,8 @@ class MainActivity : ComponentActivity() {
 internal data class MainActivityBootstrap(
     val appContainer: AppContainer,
     val contactsViewModel: ContactsViewModel,
-    val groupViewModel: GroupViewModel
+    val groupViewModel: GroupViewModel,
+    val settingsViewModel: SettingsViewModel
 )
 
 @Composable
@@ -198,6 +209,7 @@ private fun MainActivityContent(
 
     val navController = rememberNavController()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val bottomBarRoutes = navbarItems.map { it.route }
@@ -205,9 +217,13 @@ private fun MainActivityContent(
     if (permissionState.hasPermission) {
         val contactsViewModel = bootstrap.contactsViewModel
         val groupViewModel = bootstrap.groupViewModel
+        val settingsViewModel = bootstrap.settingsViewModel
         val appContainer = bootstrap.appContainer
         val contactState by contactsViewModel.state.collectAsState()
         val groupState by groupViewModel.state.collectAsState()
+        val pendingDeviceSyncRingtoneConfirmation by
+            groupViewModel.pendingDeviceSyncRingtoneConfirmation.collectAsState()
+        val appSettings by settingsViewModel.settings.collectAsState()
 
         LaunchedEffect(groupViewModel) {
             groupViewModel.messages.collect { messageResId ->
@@ -262,7 +278,11 @@ private fun MainActivityContent(
                                     }
                                 }
                                 finalResult
-                            }
+                            },
+                            hasSeenMultipleGroupsRingtoneInfo =
+                            appSettings.hasSeenMultipleGroupsRingtoneInfo,
+                            onMultipleGroupsRingtoneInfoAcknowledged =
+                            settingsViewModel::acknowledgeMultipleGroupsRingtoneInfo
                         )
                     }
                     composable(
@@ -312,7 +332,11 @@ private fun MainActivityContent(
                                         snackbarHostState.showSnackbar("Contact was not deleted.")
                                     }
                                 }
-                            }
+                            },
+                            hasSeenMultipleGroupsRingtoneInfo =
+                            appSettings.hasSeenMultipleGroupsRingtoneInfo,
+                            onMultipleGroupsRingtoneInfoAcknowledged =
+                            settingsViewModel::acknowledgeMultipleGroupsRingtoneInfo
                         )
                     }
                 }
@@ -412,7 +436,28 @@ private fun MainActivityContent(
                         )
                     }
                 }
+
+                navigation(
+                    startDestination = Screen.NavBarScreen.Settings.route,
+                    route = "settings_graph"
+                ) {
+                    composable(Screen.NavBarScreen.Settings.route) {
+                        SettingsRoute(viewModel = settingsViewModel)
+                    }
+                }
             }
+        }
+
+        pendingDeviceSyncRingtoneConfirmation?.let { confirmation ->
+            DeviceSyncRingtoneConfirmationDialog(
+                confirmation = confirmation,
+                onCancel = groupViewModel::cancelPendingDeviceSyncRingtoneChanges,
+                onAccept = {
+                    coroutineScope.launch {
+                        groupViewModel.acceptPendingDeviceSyncRingtoneChanges()
+                    }
+                }
+            )
         }
     } else {
         Scaffold(

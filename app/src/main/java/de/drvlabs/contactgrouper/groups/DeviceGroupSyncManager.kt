@@ -10,6 +10,7 @@ import de.drvlabs.contactgrouper.AppErrorKind
 import de.drvlabs.contactgrouper.AppErrorOrigin
 import de.drvlabs.contactgrouper.AppErrorReporter
 import de.drvlabs.contactgrouper.R
+import de.drvlabs.contactgrouper.settings.AppSettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ class DeviceGroupSyncManager(
     private val contentResolver: ContentResolver,
     private val source: DeviceGroupSource,
     private val repository: GroupsRepository,
+    private val settingsRepository: AppSettingsRepository,
     private val appErrorReporter: AppErrorReporter = AppErrorReporter(),
     private val getString: (Int) -> String = { "" },
     private val contentObserverFactory: (() -> Unit) -> ContentObserver = { onChange ->
@@ -130,7 +132,16 @@ class DeviceGroupSyncManager(
     ): GroupMutationResult {
         return try {
             syncMutex.withLock {
-                repository.syncDeviceGroups(source.loadSnapshot())
+                repository.syncDeviceGroups(
+                    snapshot = source.loadSnapshot(),
+                    ringtoneMode = if (
+                        settingsRepository.settings.value.autoSyncDeviceGroupChanges
+                    ) {
+                        DeviceSyncRingtoneMode.ApplyImmediately
+                    } else {
+                        DeviceSyncRingtoneMode.RequireConfirmation
+                    }
+                )
             }
         } catch (throwable: Throwable) {
             when (throwable) {

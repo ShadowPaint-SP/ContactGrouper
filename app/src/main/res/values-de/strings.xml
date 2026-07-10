@@ -3,18 +3,25 @@
 
     <string name="nav_contacts">Kontakte</string>
     <string name="nav_groups">Gruppen</string>
+    <string name="nav_settings">Einstellungen</string>
 
     <string name="action_ok">OK</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="action_save">Speichern</string>
     <string name="action_back">Zurueck</string>
+    <string name="action_accept">Akzeptieren</string>
     <string name="action_settings">Einstellungen</string>
     <string name="action_open_settings">Einstellungen oeffnen</string>
     <string name="action_grant_permissions">Berechtigungen erteilen</string>
+    <string name="action_clear_search">Suche loeschen</string>
 
     <string name="permission_required_title">Berechtigung erforderlich</string>
     <string name="permission_permanently_denied_message">Diese App benoetigt Zugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden. Bitte aktiviere die Berechtigungen in den App-Einstellungen.</string>
     <string name="permission_request_message">Diese App benoetigt Lese- und Schreibzugriff auf Kontakte, um Gruppen zu verwalten und Klingeltoene anzuwenden.</string>
+
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_auto_sync_device_group_changes">Geraetegruppen automatisch synchronisieren</string>
+    <string name="settings_auto_sync_device_group_changes_summary">Wendet Klingelton-Aenderungen aus Geraetegruppen ohne Nachfrage an.</string>
 
     <string name="app_error_start_failed_title">App konnte nicht gestartet werden</string>
     <string name="app_error_unexpected_title">Unerwarteter Fehler</string>
@@ -36,10 +43,15 @@
     <string name="app_error_close_app">App schliessen</string>
 
     <string name="contacts_assign_groups">Gruppen zuweisen</string>
+    <string name="contacts_search_label">Kontakte suchen</string>
+    <string name="contacts_empty">Keine Kontakte gefunden.</string>
+    <string name="contacts_search_empty">Keine Kontakte passen zu deiner Suche.</string>
     <string name="contacts_manage_groups">Gruppen verwalten</string>
     <string name="contacts_no_editable_groups">Erstelle zuerst eine lokale Gruppe. Importierte schreibgeschuetzte Gruppen koennen hier nicht geaendert werden.</string>
     <string name="contacts_selected">Ausgewaehlt</string>
     <string name="contacts_controls_ringtone">Steuert den Klingelton</string>
+    <string name="multiple_groups_ringtone_info_title">Klingeltoene bei mehreren Gruppen</string>
+    <string name="multiple_groups_ringtone_info_message">Bei %1$s steuert &quot;%2$s&quot; den Klingelton, weil diese Gruppe die zuletzt zugewiesene Gruppe mit Klingelton ist.</string>
     <string name="contact_not_found">Kontakt nicht gefunden.</string>
     <string name="contact_unknown_name">Unbenannter Kontakt</string>
     <string name="contact_section_phone">Telefon</string>
@@ -57,6 +69,8 @@
     <string name="contact_type_other">Andere</string>
 
     <string name="groups_empty">Noch keine Gruppen.\nZiehe nach unten, um Geraetegruppen zu synchronisieren, oder tippe auf \'+\', um eine Gruppe hinzuzufuegen.</string>
+    <string name="groups_search_label">Gruppen suchen</string>
+    <string name="groups_search_empty">Keine Gruppen passen zu deiner Suche.</string>
     <string name="groups_delete_selected">Ausgewaehlte Gruppen loeschen</string>
     <string name="groups_no_selected_deletable">Keine ausgewaehlten Gruppen koennen geloescht werden</string>
     <string name="groups_add">Gruppe hinzufuegen</string>
@@ -99,6 +113,22 @@
     <plurals name="delete_selected_read_only_blocked_message">
         <item quantity="one">\n\n%1$d ausgewaehlte Gruppe ist schreibgeschuetzt und wird nicht geloescht.</item>
         <item quantity="other">\n\n%1$d ausgewaehlte Gruppen sind schreibgeschuetzt und werden nicht geloescht.</item>
+    </plurals>
+
+    <string name="device_sync_ringtone_confirmation_title">Synchronisierte Klingelton-Aenderungen anwenden?</string>
+    <string name="device_sync_ringtone_confirmation_message">Diese Geraetesynchronisierung aktualisiert %1$s fuer %2$s in %3$s.</string>
+    <string name="device_sync_ringtone_confirmation_settings_hint">Aktiviere in den Einstellungen Geraetegruppen automatisch synchronisieren, um diese Nachfrage kuenftig zu ueberspringen und synchronisierte Klingelton-Aenderungen immer zu akzeptieren.</string>
+    <plurals name="device_sync_ringtone_confirmation_ringtone_count">
+        <item quantity="one">%1$d Kontaktklingelton</item>
+        <item quantity="other">%1$d Kontaktklingeltoene</item>
+    </plurals>
+    <plurals name="device_sync_ringtone_confirmation_contact_count">
+        <item quantity="one">%1$d Kontakt</item>
+        <item quantity="other">%1$d Kontakte</item>
+    </plurals>
+    <plurals name="device_sync_ringtone_confirmation_group_count">
+        <item quantity="one">%1$d Gruppe</item>
+        <item quantity="other">%1$d Gruppen</item>
     </plurals>
 
     <string name="mutation_permission_denied">Kontaktberechtigung ist erforderlich, um diese Aktion abzuschliessen.</string>

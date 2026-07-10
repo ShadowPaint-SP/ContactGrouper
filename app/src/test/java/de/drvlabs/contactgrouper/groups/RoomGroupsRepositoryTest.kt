@@ -105,6 +105,9 @@ class RoomGroupsRepositoryTest {
 
                 override suspend fun getByContactIds(contactIds: List<Long>): List<ContactRingtoneState> =
                     emptyList()
+
+                override suspend fun getAppliedStates(): List<ContactRingtoneState> =
+                    emptyList()
             }
 
         override fun createInvalidationTracker(): InvalidationTracker {

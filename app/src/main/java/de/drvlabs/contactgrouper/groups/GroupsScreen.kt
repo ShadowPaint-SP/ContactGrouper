@@ -7,6 +7,8 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,18 +65,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import de.drvlabs.contactgrouper.R
 import de.drvlabs.contactgrouper.Screen
 import de.drvlabs.contactgrouper.contacts.ContactList
 import de.drvlabs.contactgrouper.contacts.ContactsListState
+import de.drvlabs.contactgrouper.search.SearchTextField
+import de.drvlabs.contactgrouper.search.filterGroupsBySearchQuery
 import de.drvlabs.contactgrouper.ui.theme.readableContentColorFor
 import de.drvlabs.contactgrouper.ui.theme.visibleGroupColor
 import kotlinx.coroutines.delay
@@ -92,11 +102,19 @@ fun GroupsMainScreen(
     val coroutineScope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedGroups by rememberSaveable { mutableStateOf(emptySet<Int>()) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     val minimumRefreshIndicatorMillis = 350L
     val isInSelectionMode = selectedGroups.isNotEmpty()
     val selectedGroupModels = groupState.groups.filter { it.id in selectedGroups }
     val deletableSelectedGroups = selectedGroupModels.filter { it.canDelete }
+    val filteredGroups = remember(groupState.groups, allContacts, searchQuery) {
+        filterGroupsBySearchQuery(
+            groups = groupState.groups,
+            contacts = allContacts,
+            query = searchQuery
+        )
+    }
 
     BackHandler(enabled = isInSelectionMode) {
         selectedGroups = emptySet()
@@ -107,7 +125,11 @@ fun GroupsMainScreen(
         selectedGroups = selectedGroups intersect groupIds
     }
 
-    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+    ) {
         PullToRefreshBox(
             modifier = Modifier.fillMaxSize(),
             isRefreshing = isRefreshing,
@@ -132,42 +154,60 @@ fun GroupsMainScreen(
             }
         ) {
             if (groupState.groups.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(R.string.groups_empty),
-                        fontSize = 18.sp
-                    )
-                }
+                EmptyGroupsArrow(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-58).dp, y = (-66).dp)
+                )
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(groupState.groups) { group ->
-                        val memberCount = allContacts.count { group.id in it.groupIds }
-                        GroupCard(
-                            group = group,
-                            memberCount = memberCount,
-                            isSelected = group.id in selectedGroups,
-                            onClick = {
-                                if (isInSelectionMode) {
-                                    selectedGroups = if (group.id in selectedGroups) {
-                                        selectedGroups - group.id
-                                    } else {
-                                        selectedGroups + group.id
-                                    }
-                                } else {
-                                    navController.navigate(Screen.GroupDetails.createRoute(group.id))
-                                }
-                            },
-                            onLongClick = {
-                                selectedGroups = selectedGroups + group.id
-                            }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SearchTextField(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        label = stringResource(R.string.groups_search_label),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+
+                    if (filteredGroups.isEmpty()) {
+                        GroupsEmptyMessage(
+                            messageResId = R.string.groups_search_empty,
+                            modifier = Modifier.weight(1f)
                         )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredGroups) { group ->
+                                val memberCount = allContacts.count { group.id in it.groupIds }
+                                GroupCard(
+                                    group = group,
+                                    memberCount = memberCount,
+                                    isSelected = group.id in selectedGroups,
+                                    onClick = {
+                                        if (isInSelectionMode) {
+                                            selectedGroups = if (group.id in selectedGroups) {
+                                                selectedGroups - group.id
+                                            } else {
+                                                selectedGroups + group.id
+                                            }
+                                        } else {
+                                            navController.navigate(
+                                                Screen.GroupDetails.createRoute(group.id)
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {
+                                        selectedGroups = selectedGroups + group.id
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -267,6 +307,69 @@ fun GroupsMainScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun GroupsEmptyMessage(
+    @StringRes messageResId: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(messageResId),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun EmptyGroupsArrow(modifier: Modifier = Modifier) {
+    val arrowColor = MaterialTheme.colorScheme.primary
+    Canvas(
+        modifier = modifier
+            .size(96.dp)
+            .clearAndSetSemantics { }
+    ) {
+        val stroke = Stroke(
+            width = 4.dp.toPx(),
+            cap = StrokeCap.Round,
+            join = StrokeJoin.Round
+        )
+        val arrow = Path().apply {
+            moveTo(size.width * 0.08f, size.height * 0.12f)
+            cubicTo(
+                size.width * 0.30f,
+                size.height * 0.08f,
+                size.width * 0.28f,
+                size.height * 0.48f,
+                size.width * 0.55f,
+                size.height * 0.52f
+            )
+            cubicTo(
+                size.width * 0.70f,
+                size.height * 0.55f,
+                size.width * 0.78f,
+                size.height * 0.72f,
+                size.width * 0.90f,
+                size.height * 0.86f
+            )
+        }
+        val arrowHead = Path().apply {
+            moveTo(size.width * 0.66f, size.height * 0.82f)
+            lineTo(size.width * 0.90f, size.height * 0.86f)
+            lineTo(size.width * 0.82f, size.height * 0.62f)
+        }
+
+        drawPath(arrow, color = arrowColor, style = stroke)
+        drawPath(arrowHead, color = arrowColor, style = stroke)
     }
 }
 
@@ -727,6 +830,57 @@ fun DeleteGroupConfirmationDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+fun DeviceSyncRingtoneConfirmationDialog(
+    confirmation: DeviceSyncRingtoneConfirmation,
+    onCancel: () -> Unit,
+    onAccept: () -> Unit
+) {
+    val ringtoneCount = pluralStringResource(
+        R.plurals.device_sync_ringtone_confirmation_ringtone_count,
+        confirmation.ringtoneCount,
+        confirmation.ringtoneCount
+    )
+    val contactCount = pluralStringResource(
+        R.plurals.device_sync_ringtone_confirmation_contact_count,
+        confirmation.contactCount,
+        confirmation.contactCount
+    )
+    val groupCount = pluralStringResource(
+        R.plurals.device_sync_ringtone_confirmation_group_count,
+        confirmation.groupCount,
+        confirmation.groupCount
+    )
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.device_sync_ringtone_confirmation_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(
+                        R.string.device_sync_ringtone_confirmation_message,
+                        ringtoneCount,
+                        contactCount,
+                        groupCount
+                    )
+                )
+                Text(stringResource(R.string.device_sync_ringtone_confirmation_settings_hint))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onAccept) {
+                Text(stringResource(R.string.action_accept))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
                 Text(stringResource(R.string.action_cancel))
             }
         }
