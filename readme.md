@@ -1,144 +1,75 @@
 <p align="center">
-<picture>
-  <img src="/app/src/main/ic_launcher-playstore.png" alt="App Icon" width="40%" >
-</picture>
+  <img src="app/src/main/ic_launcher-playstore.png" alt="Contact Grouper app icon" width="180">
 </p>
 
-# ContactGrouper
+# Contact Grouper
 
-## Overview
+Contact Grouper is an Android app for organizing device contacts into groups and assigning a ringtone to each group. It works directly with Android's contacts provider, so group memberships and ringtone changes are reflected in the system contacts database.
 
-**ContactGrouper** is an Android app that lets you organize your contacts into custom groups and assign unique ringtones to each group. When someone from a group calls you, their group's ringtone will play, allowing you to instantly recognize who's calling based on the sound.
+## Features
 
-### Key Features
+- Browse and search contacts and contact groups.
+- Create local groups or import groups already stored on the device.
+- Assign one or more contacts to multiple groups at once.
+- Add or remove group memberships from a contact's detail screen.
+- Assign a ringtone to a group and apply it to its members.
+- Sync device-group changes manually or automatically.
+- Use English or German UI text.
 
-- 📱 **Organize Contacts**: Create custom contact groups to organize your contacts by category (Family, Work, Friends, etc.)
-- 🔔 **Custom Ringtones**: Assign a unique ringtone to each group for instant caller recognition
-- 👥 **Easy Management**: Add, remove, and reassign contacts to groups with a simple UI
-- 🎨 **Visual Groups**: Each group is displayed with a unique color for quick identification
-- 🔄 **Real-time Updates**: Changes to group ringtones and memberships are applied immediately
+When a contact belongs to several groups, the newest assigned group with a ringtone takes precedence. If that group has no ringtone, Contact Grouper falls back through older memberships until it finds one.
 
----
+## Privacy and permissions
 
-## How to Use
+Contact Grouper processes contact, group, and ringtone data locally on the device. It requires Android's read and write contacts permissions to display contacts and update group memberships and ringtone settings. The app does not request internet access.
 
-### Creating a Group
+See the [privacy policy](docs/privacy-policy.md) for details.
 
-1. Navigate to the **Groups** tab
-2. Tap the **+ (Add)** button in the bottom right corner
-3. Enter a **Group Name** (required)
-4. **(Optional)** Tap **"Assign Ringtone"** to select a custom ringtone for the group
-   - Choose from your device's available ringtones
-   - Tap **"Change Ringtone"** if you want to change it later
-5. Tap **"Save"** to create the group
+## Requirements
 
-### Assigning Contacts to Groups
+- Android 10 (API 29) or newer
+- JDK 17 for local development
+- Android SDK 36
 
-#### Method 1: From the Contacts Tab
-1. Navigate to the **Contacts** tab
-2. Long-press on a contact to enter selection mode
-3. Select one or more contacts
-4. Tap the **"Assign to Group"** button that appears
-5. Select one or more groups
-6. Tap **"Assign"**
+## Build and test
 
-#### Method 2: From the Contact Detail
-1. Navigate to the **Contacts** tab
-2. Tap on a contact to view their details
-3. Scroll down to the **Group** section
-4. If the contact is already in a group, you can tap the delete button to remove them
-5. To assign a contact to additional groups, use the add-to-group action in the contact detail
+Clone the repository and run the Gradle wrapper from its root:
 
-### Viewing Group Details
+```bash
+./gradlew :app:assembleDebug
+```
 
-1. Navigate to the **Groups** tab
-2. Tap on a group card to view its details
-3. You'll see:
-   - **Group name** with its color
-   - **Member count** showing how many contacts are in the group
-   - **Ringtone** currently assigned to the group
-   - **List of all members** in the group
+The debug APK is written to `app/build/outputs/apk/debug/`.
 
-### Changing a Group's Ringtone
+Run the JVM tests and static analysis with:
 
-1. Navigate to the **Groups** tab
-2. Tap on a group to view its details
-3. Tap the **⋮ (Settings menu)** button in the top right
-4. Select **"Change Ringtone"**
-5. Choose a new ringtone from the system ringtone picker
-6. The new ringtone is **applied immediately** to all contacts in the group
+```bash
+./gradlew :app:testDebugUnitTest :app:lintDebug
+```
 
-### Removing a Contact from a Group
+Instrumentation tests require a connected device or emulator:
 
-#### Method 1: From Contact Details
-1. Navigate to a **Contact** and tap to view details
-2. Find the **Group** section at the bottom
-3. Tap the **delete icon** next to the group name
-4. The contact is removed from the group and reverts to the default ringtone
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
 
-#### Method 2: From Group Details
-1. Navigate to the **Groups** tab
-2. Tap on a group to view its members
-3. Find the contact you want to remove in the member list
-4. Tap the **delete icon** next to their name
-5. The contact is removed from the group
+GitHub Actions runs unit tests, lint, and a debug build for pushes and pull requests targeting `main`.
 
-### Deleting a Group
+## Release builds
 
-1. Navigate to the **Groups** tab
-2. Tap on the group you want to delete
-3. Tap the **⋮ (Settings menu)** button in the top right
-4. Select **"Delete Group"**
-5. Confirm the warning dialog
-6. The group is deleted (contacts are not deleted, just unassigned)
-   - If the group is synced to device contacts, deleting it removes it from the whole device
+Release builds require a local signing configuration. Copy `keystore.properties.example` to `keystore.properties`, fill in the signing values, and keep both the properties file and keystore out of version control.
 
----
+See the [release guide](docs/release.md) for the release commands and artifact locations.
 
-## How Ringtones Work
+## Project structure
 
-- When a contact is assigned to one or more groups, the most recently assigned group with a ringtone controls the contact's ringtone
-- Each contact can belong to **multiple groups at the same time**
-- If the newest group has no ringtone, the app falls back to the next newest group that does
-- If you change a group's ringtone, **all contacts in that group** automatically get the new ringtone
-- If you remove a contact from a group, the **custom ringtone is cleared** and the contact reverts to the default system ringtone
-- Deleting a group that is synced to the device removes it from the device's contact groups as well, and the app shows a confirmation dialog before doing that
+```text
+app/src/main/java/de/drvlabs/contactgrouper/
+├── contacts/    Contact queries, list state, and contact details
+├── groups/      Group storage, device sync, memberships, and ringtones
+├── permission/  Contacts permission state
+├── search/      Shared search UI and filtering
+├── settings/    Persistent app settings
+└── ui/theme/    Compose theme
+```
 
----
-
-## Technical Details
-
-- **Built with**: Android Jetpack Compose, Room Database, Kotlin
-- **Requires**: Android 10 or higher
-- **Permissions**: Contacts (READ/WRITE), Phone (to set ringtones)
-- **Build automation**: GitHub Actions test the app and publish debug APK artifacts. See [docs/release.md](docs/release.md).
-
----
-
-## Tips & Tricks
-
-✨ **Pro Tips:**
-
-- Use distinct ringtones for different groups (e.g., upbeat for friends, professional tone for work)
-- Create a "VIP" group for important contacts and assign a unique ringtone
-- Change group ringtones seasonally or by occasion
-- The color of each group is randomly generated - no need to worry about duplicates!
-
----
-
-## Future Enhancements
-
-Potential features for future versions:
-- Custom vibration patterns per group
-- Notification LED colors per group
-- Contact photos in group detail view
-- Group messaging (send SMS to all members)
-- Smart groups based on contact frequency
-
----
-
-## Support & Feedback
-
-If you encounter any issues or have suggestions for improvements, please feel free to reach out!
-
-**Enjoy organizing your contacts!** 📞✨
+The app is written in Kotlin using Jetpack Compose, Room, Navigation Compose, and Coil.
