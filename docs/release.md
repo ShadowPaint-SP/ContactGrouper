@@ -161,7 +161,11 @@ To remove automation completely:
    gh api --method DELETE repos/ShadowPaint-SP/ContactGrouper/environments/google-play
    ```
 
-4. With Google Cloud CLI signed into the owning account, delete the identity pool and service account:
+4. With Google Cloud CLI signed into the owning account, delete the identity pool and service account.
+   If using the temporary CLI from this setup, first run
+   `export PATH="/tmp/contactgrouper-release-tools/google-cloud-sdk/bin:$PATH"` in that terminal.
+   If the temporary directory is gone, [install Google Cloud CLI](https://docs.cloud.google.com/sdk/docs/install-sdk)
+   and run `gcloud auth login` first.
 
    ```bash
    gcloud iam workload-identity-pools delete github \
@@ -174,9 +178,10 @@ To remove automation completely:
    Alternatively, if this dedicated project still contains only the release setup, delete
    it with `gcloud projects delete contactgrouper-releases`. Check for unrelated resources first.
 
-5. Remove `.github/workflows/play-release.yml`, `scripts/check_play_version.py`, its test, and
-   `release-notes/` through a repository change. The Gradle version/signing overrides can
-   stay for local builds or be reverted if no longer needed.
+5. Remove `.github/workflows/play-release.yml`, `scripts/check_play_version.py`,
+   `scripts/test_play_version.py`, and `release-notes/` through a repository change. Also
+   remove the **Test Play release preflight** step from `.github/workflows/android-ci.yml`.
+   The Gradle version/signing overrides can stay for local builds or be reverted if no longer needed.
 
 Keep the local upload keystore, passwords, GitHub release history, and Play bundles.
 Removing automation does not require an upload-key reset or unpublish the app.
