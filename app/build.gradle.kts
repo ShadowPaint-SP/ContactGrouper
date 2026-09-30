@@ -1,12 +1,24 @@
 import org.gradle.api.GradleException
 import java.util.Properties
 
-val releaseVersionCode = 2
-val releaseVersionName = "1.0.1"
+val releaseVersionCode = providers.gradleProperty("releaseVersionCode").orElse("2").get().toInt()
+val releaseVersionName = providers.gradleProperty("releaseVersionName").orElse("1.0.1").get()
+require(releaseVersionCode in 1..2_100_000_000) { "Invalid release version code" }
+require(releaseVersionName.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+"))) {
+    "Release version name must have the form 1.2.3"
+}
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.isFile) {
         keystorePropertiesFile.inputStream().use(::load)
+    }
+    mapOf(
+        "storeFile" to "ANDROID_KEYSTORE_FILE",
+        "storePassword" to "ANDROID_KEYSTORE_PASSWORD",
+        "keyAlias" to "ANDROID_KEY_ALIAS",
+        "keyPassword" to "ANDROID_KEY_PASSWORD",
+    ).forEach { (property, environmentVariable) ->
+        providers.environmentVariable(environmentVariable).orNull?.let { setProperty(property, it) }
     }
 }
 val hasReleaseSigningConfig = listOf(
@@ -26,7 +38,8 @@ gradle.taskGraph.whenReady {
     if (!hasReleaseSigningConfig && allTasks.any { it.name in releaseArtifactTasks }) {
         throw GradleException(
             "Release signing is not configured. Create keystore.properties from " +
-                "keystore.properties.example before building a Play release."
+                "keystore.properties.example or set the ANDROID_KEYSTORE_* and " +
+                "ANDROID_KEY_* environment variables before building a Play release."
         )
     }
 }

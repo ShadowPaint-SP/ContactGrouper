@@ -5,6 +5,9 @@ build/
 # Local configuration files
 local.properties
 keystore.properties
+gha-creds-*.json
+release-output/
+__pycache__/
 
 # Android Studio and IntelliJ IDEA files
 .idea/

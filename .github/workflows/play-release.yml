@@ -1,0 +1,187 @@
+name: Publish Play release
+run-name: Play ${{ inputs.version_name }} (${{ inputs.version_code }}) — ${{ inputs.publish && 'publish' || 'build only' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name, for example 1.1.0"
+        required: true
+        type: string
+      version_code:
+        description: "New version code, greater than every previous Play upload"
+        required: true
+        type: string
+      publish:
+        description: "Upload to Play internal testing and create a GitHub release"
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: play-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: google-play
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION_NAME: ${{ inputs.version_name }}
+      VERSION_CODE: ${{ inputs.version_code }}
+
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate release inputs and notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main || { echo 'Run releases from main.'; exit 1; }
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          name, code = os.environ['VERSION_NAME'], os.environ['VERSION_CODE']
+          if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', name):
+              raise SystemExit('Version name must have the form 1.2.3.')
+          if not re.fullmatch(r'[1-9][0-9]{0,9}', code) or int(code) > 2_100_000_000:
+              raise SystemExit('Version code must be an integer from 1 to 2100000000.')
+          for locale in ('en-US', 'de-DE'):
+              notes = Path(f'release-notes/whatsnew-{locale}').read_text()
+              if not notes.strip() or len(notes) > 500:
+                  raise SystemExit(f'{locale} release notes must contain 1–500 characters.')
+          PY
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION_NAME"; then
+            echo "Tag v$VERSION_NAME already exists. Choose a new version."
+            exit 1
+          else
+            status=$?
+            test "$status" -eq 2 || exit "$status"
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Test, lint, and build signed release bundle
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            test -n "${!name}" || { echo "Missing secret: $name"; exit 1; }
+          done
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.keystore"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:bundleRelease \
+            "-PreleaseVersionName=$VERSION_NAME" "-PreleaseVersionCode=$VERSION_CODE" --stacktrace
+
+      - name: Package release record
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-output
+          cp "app/build/outputs/bundle/release/contactgrouper-v$VERSION_NAME-release.aab" release-output/
+          cp release-notes/whatsnew-* release-output/
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          output = Path('release-output')
+          bundle = next(output.glob('*.aab'))
+          digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+          record = {
+              'packageName': 'de.drvlabs.contactgrouper',
+              'versionName': os.environ['VERSION_NAME'],
+              'versionCode': int(os.environ['VERSION_CODE']),
+              'commit': os.environ['GITHUB_SHA'],
+              'targetTrack': 'internal',
+              'bundle': bundle.name,
+              'sha256': digest,
+              'workflowRun': f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }
+          (output / 'release.json').write_text(json.dumps(record, indent=2) + '\n')
+          (output / 'SHA256SUMS').write_text(f'{digest}  {bundle.name}\n')
+          (output / 'release.md').write_text(
+              f"Version {record['versionName']} (code {record['versionCode']}); target: internal testing.\n\n"
+              f"Commit: `{record['commit']}`\n\nBuild: {record['workflowRun']}\n\n"
+              + Path('release-notes/whatsnew-en-US').read_text()
+          )
+          PY
+
+      - name: Save bundle and release record
+        uses: actions/upload-artifact@v4
+        with:
+          name: contactgrouper-${{ inputs.version_name }}-${{ inputs.version_code }}
+          path: release-output/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Authenticate to Google Play
+        id: google
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.PLAY_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.PLAY_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+
+      - name: Check Play access and version code
+        env:
+          PLAY_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+        run: python3 scripts/check_play_version.py "$VERSION_CODE"
+
+      - name: Upload to Play internal testing
+        if: inputs.publish
+        uses: r0adkll/upload-google-play@eb49699984a39f23558439581660aa6f088acfd6 # v1
+        with:
+          serviceAccountJson: ${{ steps.google.outputs.credentials_file_path }}
+          packageName: de.drvlabs.contactgrouper
+          releaseFiles: release-output/*.aab
+          tracks: internal
+          status: completed
+          releaseName: ${{ inputs.version_name }} (${{ inputs.version_code }})
+          whatsNewDirectory: release-notes
+
+      - name: Record successful upload in GitHub
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION_NAME" release-output/*.aab release-output/release.json \
+            release-output/SHA256SUMS release-output/whatsnew-* \
+            --target "$GITHUB_SHA" --title "Contact Grouper $VERSION_NAME ($VERSION_CODE)" \
+            --notes-file release-output/release.md --generate-notes --prerelease --latest=false
+
+      - name: Write run summary
+        env:
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          cat release-output/release.md >> "$GITHUB_STEP_SUMMARY"
+          if [ "$PUBLISH" = true ]; then
+            printf '\nUploaded to Play internal testing; GitHub release: v%s.\n' "$VERSION_NAME" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '\nBuild-only check passed. No bundle was uploaded to Play and no release tag was created.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
