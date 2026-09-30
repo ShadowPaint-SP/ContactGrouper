@@ -58,7 +58,9 @@ GitHub Actions runs unit tests, lint, and a debug build for pushes and pull requ
 
 Release builds require a local signing configuration. Copy `keystore.properties.example` to `keystore.properties`, fill in the signing values, and keep both the properties file and keystore out of version control.
 
-See the [release guide](docs/release.md) for the release commands and artifact locations.
+The manual **Publish Play release** GitHub workflow can test, sign, and upload an update to
+internal testing. It never publishes on pushes to `main`. See the [release guide](docs/release.md)
+for publishing, credentials, release history, and removal instructions.
 
 ## Project structure
 
